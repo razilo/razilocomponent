@@ -1,0 +1,16 @@
+{
+  "name": "razilocomponent",
+  "version": "1.0.0",
+  "description": "ES6 web component building library for creating HTML web components in a clean modular way. The core part of the tool, allowing the creation of clean HTML web components.",
+  "author": "Paul Smith (smiffy6969)",
+  "homepage": "http://component.razilo.net",
+  "dependencies": {
+	"razilobind": "^1.0.7",
+    "promise-polyfill": "^5.1.0",
+    "webcomponentsjs": "^1.0.2"
+  },
+  "devDependencies": {},
+  "browserify": {
+    "transform": [["babelify", { "presets": ["es2015-loose"] }]]
+  }
+}
