@@ -1,6 +1,104 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
 
+require('../node_modules/webcomponents.js/webcomponents-lite.js');
+
+require('../node_modules/proxy-oo-polyfill/proxy-oo-polyfill.js');
+
+require('../node_modules/promise-polyfill/promise.js');
+
+var _index = require('../index.js');
+
+var _index2 = _interopRequireDefault(_index);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// razilo modules are all ES6 modules so make them available on global
+window.RaziloComponent = _index2.default;
+
+},{"../index.js":2,"../node_modules/promise-polyfill/promise.js":3,"../node_modules/proxy-oo-polyfill/proxy-oo-polyfill.js":4,"../node_modules/webcomponents.js/webcomponents-lite.js":55}],2:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+
+var _core = require('./src/core.js');
+
+var _core2 = _interopRequireDefault(_core);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+// import ObjectAssign from 'object-assign'
+
+var RaziloComponent = function () {
+	function RaziloComponent(name, extbp, bp) {
+		_classCallCheck(this, RaziloComponent);
+
+		var isString = typeof extbp === 'string';
+		this.register(name, isString ? extbp : null, isString ? bp : extbp, document._currentScript.ownerDocument);
+	}
+
+	/**
+  * Register New Component
+  */
+
+
+	RaziloComponent.prototype.register = function register(name, ext, bp, component) {
+		for (var key in bp) {
+			this[key] = bp[key];
+		}return _core2.default.registerElement(this, name, ext, component);
+	};
+
+	/**
+  * Fires an event off from the components element
+  * @param string name The name of the event
+  * @param mixed detail [optional] Any optional details you wish to send
+  */
+	// fireEvent(name, detail) return function )
+
+	/**
+  * Get the current working root element (the host) (generated on bind to preserve element)
+  */
+	// getHost() { returns host }
+
+	/**
+  * Clone object without reference
+  */
+	// cloneObject() { returns host }
+
+	/**
+  * Custom element created, but not currently on dom
+  */
+	// OPTIONAL created() { }
+
+	/**
+  * Custom element attached to dom
+  */
+	// OPTIONAL attached() { }
+
+	/**
+  * Custom element detached from dom
+  */
+	// OPTIONAL detached() { }
+
+	/**
+  * Custom element atttibute has changed somehow
+  * @param string name The name of the attribute added, removed or changed
+  * @param string oldVal The old value of the attribute.
+  * @param string newVal The new value of the attribute.
+  */
+	// OPTIONAL attributeChanged(name, oldVal, newVal) { }
+
+
+	return RaziloComponent;
+}();
+
+exports.default = RaziloComponent;
+
+},{"./src/core.js":56}],3:[function(require,module,exports){
+'use strict';
+
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
 (function (root) {
@@ -10,17 +108,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   var setTimeoutFunc = setTimeout;
 
   function noop() {}
-
-  // Use polyfill for setImmediate for performance gains
-  var asap = typeof setImmediate === 'function' && setImmediate || function (fn) {
-    setTimeoutFunc(fn, 0);
-  };
-
-  var onUnhandledRejection = function onUnhandledRejection(err) {
-    if (typeof console !== 'undefined' && console) {
-      console.warn('Possible Unhandled Promise Rejection:', err); // eslint-disable-line no-console
-    }
-  };
 
   // Polyfill for Function.prototype.bind
   function bind(fn, thisArg) {
@@ -49,7 +136,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
       return;
     }
     self._handled = true;
-    asap(function () {
+    Promise._immediateFn(function () {
       var cb = self._state === 1 ? deferred.onFulfilled : deferred.onRejected;
       if (cb === null) {
         (self._state === 1 ? resolve : reject)(deferred.promise, self._value);
@@ -98,9 +185,9 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
   function finale(self) {
     if (self._state === 2 && self._deferreds.length === 0) {
-      asap(function () {
+      Promise._immediateFn(function () {
         if (!self._handled) {
-          onUnhandledRejection(self._value);
+          Promise._unhandledRejectionFn(self._value);
         }
       });
     }
@@ -210,17 +297,35 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     });
   };
 
+  // Use polyfill for setImmediate for performance gains
+  Promise._immediateFn = typeof setImmediate === 'function' && function (fn) {
+    setImmediate(fn);
+  } || function (fn) {
+    setTimeoutFunc(fn, 0);
+  };
+
+  Promise._unhandledRejectionFn = function _unhandledRejectionFn(err) {
+    if (typeof console !== 'undefined' && console) {
+      console.warn('Possible Unhandled Promise Rejection:', err); // eslint-disable-line no-console
+    }
+  };
+
   /**
    * Set the immediate function to execute callbacks
    * @param fn {function} Function to execute
-   * @private
+   * @deprecated
    */
   Promise._setImmediateFn = function _setImmediateFn(fn) {
-    asap = fn;
+    Promise._immediateFn = fn;
   };
 
+  /**
+   * Change the function to execute on unhandled rejection
+   * @param {function} fn Function to execute on unhandled rejection
+   * @deprecated
+   */
   Promise._setUnhandledRejectionFn = function _setUnhandledRejectionFn(fn) {
-    onUnhandledRejection = fn;
+    Promise._unhandledRejectionFn = fn;
   };
 
   if (typeof module !== 'undefined' && module.exports) {
@@ -230,7 +335,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
   }
 })(undefined);
 
-},{}],2:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 /**
  * Proxy has been patched with support for Object.observe, which is now obsovare. This is done to allow OO to exist if native proxy does not.
  * The reason for this is due to limitations with proxy polyfill when it comes to arrays as it makes them immutable.
@@ -486,7 +591,6 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
      * @type {Map<Object, ObjectData}
      */
     var observed,
-
 
     /**
      * List of handlers and their data
@@ -1155,7 +1259,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
     };
 })(Proxy, Object, Array, undefined);
 
-},{}],3:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1214,7 +1318,7 @@ exports.RaziloBindTrimAlterer = _trimAlterer2.default;
 exports.RaziloBindEqualAlterer = _equalAlterer2.default;
 exports.RaziloBindIdenticalAlterer = _identicalAlterer2.default;
 
-},{"./src/alterer.js":4,"./src/date.alterer.js":5,"./src/equal.alterer.js":6,"./src/identical.alterer.js":7,"./src/join.alterer.js":8,"./src/json.alterer.js":9,"./src/not.alterer.js":10,"./src/prefix.alterer.js":11,"./src/suffix.alterer.js":12,"./src/trim.alterer.js":13}],4:[function(require,module,exports){
+},{"./src/alterer.js":6,"./src/date.alterer.js":7,"./src/equal.alterer.js":8,"./src/identical.alterer.js":9,"./src/join.alterer.js":10,"./src/json.alterer.js":11,"./src/not.alterer.js":12,"./src/prefix.alterer.js":13,"./src/suffix.alterer.js":14,"./src/trim.alterer.js":15}],6:[function(require,module,exports){
 "use strict";
 
 exports.__esModule = true;
@@ -1227,7 +1331,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  * Alterer
  * Generic alterer methods used accross all alterers
  */
-
 var Alterer = function () {
 	function Alterer() {
 		_classCallCheck(this, Alterer);
@@ -1247,7 +1350,7 @@ var Alterer = function () {
 
 exports.default = Alterer;
 
-},{}],5:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1277,43 +1380,42 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * properties: name, accepts, options
  * method: detect(name, resolved) { return bool }
  */
-
 var DateAlterer = function (_Alterer) {
-  _inherits(DateAlterer, _Alterer);
+	_inherits(DateAlterer, _Alterer);
 
-  function DateAlterer() {
-    _classCallCheck(this, DateAlterer);
+	function DateAlterer() {
+		_classCallCheck(this, DateAlterer);
 
-    var _this = _possibleConstructorReturn(this, _Alterer.call(this));
+		var _this = _possibleConstructorReturn(this, _Alterer.call(this));
 
-    _this.name = 'date';
-    _this.accepts = ['string', 'number', 'object', 'symbol'];
-    return _this;
-  }
+		_this.name = 'date';
+		_this.accepts = ['string', 'number', 'object', 'symbol'];
+		return _this;
+	}
 
-  /**
-   * alter()
-   * Changes resolved data based on options
-   * @param mixed resolved The data to change
-   * @param mixed options Any options sent in with the alterer
-   * @return mixed Changed resolved data
-   */
+	/**
+  * alter()
+  * Changes resolved data based on options
+  * @param mixed resolved The data to change
+  * @param mixed options Any options sent in with the alterer
+  * @return mixed Changed resolved data
+  */
 
 
-  DateAlterer.prototype.alter = function alter(resolved, options) {
-    var dateObj = void 0;
+	DateAlterer.prototype.alter = function alter(resolved, options) {
+		var dateObj = void 0;
 
-    if ((typeof resolved === 'undefined' ? 'undefined' : _typeof(resolved)) === 'symbol') dateObj = new Date(Date.parse(String(Symbol(resolved))));else if (!isNaN(resolved) && resolved !== null) dateObj = new Date(resolved);else if (typeof resolved === 'string' && resolved.length > 0) dateObj = new Date(Date.parse(resolved));else if (resolved instanceof Date) dateObj = resolved;else return '';
+		if ((typeof resolved === 'undefined' ? 'undefined' : _typeof(resolved)) === 'symbol') dateObj = new Date(Date.parse(String(Symbol(resolved))));else if (!isNaN(resolved) && resolved !== null) dateObj = new Date(resolved);else if (typeof resolved === 'string' && resolved.length > 0) dateObj = new Date(Date.parse(resolved));else if (resolved instanceof Date) dateObj = resolved;else return '';
 
-    return _razilobindCore.RaziloBindDateFormat.dateFormat(dateObj, options);
-  };
+		return _razilobindCore.RaziloBindDateFormat.dateFormat(dateObj, options);
+	};
 
-  return DateAlterer;
+	return DateAlterer;
 }(_alterer2.default);
 
 exports.default = DateAlterer;
 
-},{"./alterer.js":4,"razilobind-core":36}],6:[function(require,module,exports){
+},{"./alterer.js":6,"razilobind-core":38}],8:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1339,39 +1441,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * properties: name, accepts, options
  * method: detect(name, resolved) { return bool }
  */
-
 var EqualAlterer = function (_Alterer) {
-  _inherits(EqualAlterer, _Alterer);
+	_inherits(EqualAlterer, _Alterer);
 
-  function EqualAlterer() {
-    _classCallCheck(this, EqualAlterer);
+	function EqualAlterer() {
+		_classCallCheck(this, EqualAlterer);
 
-    var _this = _possibleConstructorReturn(this, _Alterer.call(this));
+		var _this = _possibleConstructorReturn(this, _Alterer.call(this));
 
-    _this.name = 'equal';
-    _this.accepts = [];
-    return _this;
-  }
+		_this.name = 'equal';
+		_this.accepts = [];
+		return _this;
+	}
 
-  /**
-   * alter()
-   * Changes resolved data based on options
-   * @param mixed resolved The data to change
-   * @param mixed options Any options sent in with the alterer
-   * @return mixed Changed resolved data
-   */
+	/**
+  * alter()
+  * Changes resolved data based on options
+  * @param mixed resolved The data to change
+  * @param mixed options Any options sent in with the alterer
+  * @return mixed Changed resolved data
+  */
 
 
-  EqualAlterer.prototype.alter = function alter(resolved, options) {
-    return resolved == options;
-  };
+	EqualAlterer.prototype.alter = function alter(resolved, options) {
+		return resolved == options;
+	};
 
-  return EqualAlterer;
+	return EqualAlterer;
 }(_alterer2.default);
 
 exports.default = EqualAlterer;
 
-},{"./alterer.js":4}],7:[function(require,module,exports){
+},{"./alterer.js":6}],9:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1397,39 +1498,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * properties: name, accepts, options
  * method: detect(name, resolved) { return bool }
  */
-
 var IdenticalAlterer = function (_Alterer) {
-  _inherits(IdenticalAlterer, _Alterer);
+	_inherits(IdenticalAlterer, _Alterer);
 
-  function IdenticalAlterer() {
-    _classCallCheck(this, IdenticalAlterer);
+	function IdenticalAlterer() {
+		_classCallCheck(this, IdenticalAlterer);
 
-    var _this = _possibleConstructorReturn(this, _Alterer.call(this));
+		var _this = _possibleConstructorReturn(this, _Alterer.call(this));
 
-    _this.name = 'identical';
-    _this.accepts = [];
-    return _this;
-  }
+		_this.name = 'identical';
+		_this.accepts = [];
+		return _this;
+	}
 
-  /**
-   * alter()
-   * Changes resolved data based on options
-   * @param mixed resolved The data to change
-   * @param mixed options Any options sent in with the alterer
-   * @return mixed Changed resolved data
-   */
+	/**
+  * alter()
+  * Changes resolved data based on options
+  * @param mixed resolved The data to change
+  * @param mixed options Any options sent in with the alterer
+  * @return mixed Changed resolved data
+  */
 
 
-  IdenticalAlterer.prototype.alter = function alter(resolved, options) {
-    return resolved === options;
-  };
+	IdenticalAlterer.prototype.alter = function alter(resolved, options) {
+		return resolved === options;
+	};
 
-  return IdenticalAlterer;
+	return IdenticalAlterer;
 }(_alterer2.default);
 
 exports.default = IdenticalAlterer;
 
-},{"./alterer.js":4}],8:[function(require,module,exports){
+},{"./alterer.js":6}],10:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1455,42 +1555,41 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * properties: name, accepts, options
  * method: detect(name, resolved) { return bool }
  */
-
 var JoinAlterer = function (_Alterer) {
-  _inherits(JoinAlterer, _Alterer);
+	_inherits(JoinAlterer, _Alterer);
 
-  function JoinAlterer() {
-    _classCallCheck(this, JoinAlterer);
+	function JoinAlterer() {
+		_classCallCheck(this, JoinAlterer);
 
-    var _this = _possibleConstructorReturn(this, _Alterer.call(this));
+		var _this = _possibleConstructorReturn(this, _Alterer.call(this));
 
-    _this.name = 'join';
-    _this.accepts = ['object'];
-    return _this;
-  }
+		_this.name = 'join';
+		_this.accepts = ['object'];
+		return _this;
+	}
 
-  /**
-   * alter()
-   * Changes resolved data based on options
-   * @param mixed resolved The data to change
-   * @param mixed options Any options sent in with the alterer
-   * @return mixed Changed resolved data
-   */
+	/**
+  * alter()
+  * Changes resolved data based on options
+  * @param mixed resolved The data to change
+  * @param mixed options Any options sent in with the alterer
+  * @return mixed Changed resolved data
+  */
 
 
-  JoinAlterer.prototype.alter = function alter(resolved, options) {
-    var result = '';
-    for (var key in resolved) {
-      result = result + String(resolved[key]);
-    }return result;
-  };
+	JoinAlterer.prototype.alter = function alter(resolved, options) {
+		var result = '';
+		for (var key in resolved) {
+			result = result + String(resolved[key]);
+		}return result;
+	};
 
-  return JoinAlterer;
+	return JoinAlterer;
 }(_alterer2.default);
 
 exports.default = JoinAlterer;
 
-},{"./alterer.js":4}],9:[function(require,module,exports){
+},{"./alterer.js":6}],11:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1516,39 +1615,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * properties: name, accepts, options
  * method: detect(name, resolved) { return bool }
  */
-
 var JsonAlterer = function (_Alterer) {
-  _inherits(JsonAlterer, _Alterer);
+	_inherits(JsonAlterer, _Alterer);
 
-  function JsonAlterer() {
-    _classCallCheck(this, JsonAlterer);
+	function JsonAlterer() {
+		_classCallCheck(this, JsonAlterer);
 
-    var _this = _possibleConstructorReturn(this, _Alterer.call(this));
+		var _this = _possibleConstructorReturn(this, _Alterer.call(this));
 
-    _this.name = 'json';
-    _this.accepts = [];
-    return _this;
-  }
+		_this.name = 'json';
+		_this.accepts = [];
+		return _this;
+	}
 
-  /**
-   * alter()
-   * Changes resolved data based on options
-   * @param mixed resolved The data to change
-   * @param mixed options Any options sent in with the alterer
-   * @return mixed Changed resolved data
-   */
+	/**
+  * alter()
+  * Changes resolved data based on options
+  * @param mixed resolved The data to change
+  * @param mixed options Any options sent in with the alterer
+  * @return mixed Changed resolved data
+  */
 
 
-  JsonAlterer.prototype.alter = function alter(resolved, options) {
-    return JSON.stringify(resolved);
-  };
+	JsonAlterer.prototype.alter = function alter(resolved, options) {
+		return JSON.stringify(resolved);
+	};
 
-  return JsonAlterer;
+	return JsonAlterer;
 }(_alterer2.default);
 
 exports.default = JsonAlterer;
 
-},{"./alterer.js":4}],10:[function(require,module,exports){
+},{"./alterer.js":6}],12:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1574,39 +1672,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * properties: name, accepts, options
  * method: detect(name, resolved) { return bool }
  */
-
 var NotAlterer = function (_Alterer) {
-  _inherits(NotAlterer, _Alterer);
+	_inherits(NotAlterer, _Alterer);
 
-  function NotAlterer() {
-    _classCallCheck(this, NotAlterer);
+	function NotAlterer() {
+		_classCallCheck(this, NotAlterer);
 
-    var _this = _possibleConstructorReturn(this, _Alterer.call(this));
+		var _this = _possibleConstructorReturn(this, _Alterer.call(this));
 
-    _this.name = 'not';
-    _this.accepts = [];
-    return _this;
-  }
+		_this.name = 'not';
+		_this.accepts = [];
+		return _this;
+	}
 
-  /**
-   * alter()
-   * Changes resolved data based on options
-   * @param mixed resolved The data to change
-   * @param mixed options Any options sent in with the alterer
-   * @return mixed Changed resolved data
-   */
+	/**
+  * alter()
+  * Changes resolved data based on options
+  * @param mixed resolved The data to change
+  * @param mixed options Any options sent in with the alterer
+  * @return mixed Changed resolved data
+  */
 
 
-  NotAlterer.prototype.alter = function alter(resolved, options) {
-    return !resolved;
-  };
+	NotAlterer.prototype.alter = function alter(resolved, options) {
+		return !resolved;
+	};
 
-  return NotAlterer;
+	return NotAlterer;
 }(_alterer2.default);
 
 exports.default = NotAlterer;
 
-},{"./alterer.js":4}],11:[function(require,module,exports){
+},{"./alterer.js":6}],13:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1632,39 +1729,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * properties: name, accepts, options
  * method: detect(name, resolved) { return bool }
  */
-
 var PrefixAlterer = function (_Alterer) {
-  _inherits(PrefixAlterer, _Alterer);
+	_inherits(PrefixAlterer, _Alterer);
 
-  function PrefixAlterer() {
-    _classCallCheck(this, PrefixAlterer);
+	function PrefixAlterer() {
+		_classCallCheck(this, PrefixAlterer);
 
-    var _this = _possibleConstructorReturn(this, _Alterer.call(this));
+		var _this = _possibleConstructorReturn(this, _Alterer.call(this));
 
-    _this.name = 'prefix';
-    _this.accepts = ['string'];
-    return _this;
-  }
+		_this.name = 'prefix';
+		_this.accepts = ['string'];
+		return _this;
+	}
 
-  /**
-   * alter()
-   * Changes resolved data based on options
-   * @param mixed resolved The data to change
-   * @param mixed options Any options sent in with the alterer
-   * @return mixed Changed resolved data
-   */
+	/**
+  * alter()
+  * Changes resolved data based on options
+  * @param mixed resolved The data to change
+  * @param mixed options Any options sent in with the alterer
+  * @return mixed Changed resolved data
+  */
 
 
-  PrefixAlterer.prototype.alter = function alter(resolved, options) {
-    return String(options) + resolved;
-  };
+	PrefixAlterer.prototype.alter = function alter(resolved, options) {
+		return String(options) + resolved;
+	};
 
-  return PrefixAlterer;
+	return PrefixAlterer;
 }(_alterer2.default);
 
 exports.default = PrefixAlterer;
 
-},{"./alterer.js":4}],12:[function(require,module,exports){
+},{"./alterer.js":6}],14:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1690,39 +1786,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * properties: name, accepts, options
  * method: detect(name, resolved) { return bool }
  */
-
 var SuffixAlterer = function (_Alterer) {
-  _inherits(SuffixAlterer, _Alterer);
+	_inherits(SuffixAlterer, _Alterer);
 
-  function SuffixAlterer() {
-    _classCallCheck(this, SuffixAlterer);
+	function SuffixAlterer() {
+		_classCallCheck(this, SuffixAlterer);
 
-    var _this = _possibleConstructorReturn(this, _Alterer.call(this));
+		var _this = _possibleConstructorReturn(this, _Alterer.call(this));
 
-    _this.name = 'suffix';
-    _this.accepts = ['string'];
-    return _this;
-  }
+		_this.name = 'suffix';
+		_this.accepts = ['string'];
+		return _this;
+	}
 
-  /**
-   * alter()
-   * Changes resolved data based on options
-   * @param mixed resolved The data to change
-   * @param mixed options Any options sent in with the alterer
-   * @return mixed Changed resolved data
-   */
+	/**
+  * alter()
+  * Changes resolved data based on options
+  * @param mixed resolved The data to change
+  * @param mixed options Any options sent in with the alterer
+  * @return mixed Changed resolved data
+  */
 
 
-  SuffixAlterer.prototype.alter = function alter(resolved, options) {
-    return resolved + String(options);
-  };
+	SuffixAlterer.prototype.alter = function alter(resolved, options) {
+		return resolved + String(options);
+	};
 
-  return SuffixAlterer;
+	return SuffixAlterer;
 }(_alterer2.default);
 
 exports.default = SuffixAlterer;
 
-},{"./alterer.js":4}],13:[function(require,module,exports){
+},{"./alterer.js":6}],15:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1748,39 +1843,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * properties: name, accepts, options
  * method: detect(name, resolved) { return bool }
  */
-
 var TrimAlterer = function (_Alterer) {
-  _inherits(TrimAlterer, _Alterer);
+	_inherits(TrimAlterer, _Alterer);
 
-  function TrimAlterer() {
-    _classCallCheck(this, TrimAlterer);
+	function TrimAlterer() {
+		_classCallCheck(this, TrimAlterer);
 
-    var _this = _possibleConstructorReturn(this, _Alterer.call(this));
+		var _this = _possibleConstructorReturn(this, _Alterer.call(this));
 
-    _this.name = 'trim';
-    _this.accepts = ['string'];
-    return _this;
-  }
+		_this.name = 'trim';
+		_this.accepts = ['string'];
+		return _this;
+	}
 
-  /**
-   * alter()
-   * Changes resolved data based on options
-   * @param mixed resolved The data to change
-   * @param mixed options Any options sent in with the alterer
-   * @return mixed Changed resolved data
-   */
+	/**
+  * alter()
+  * Changes resolved data based on options
+  * @param mixed resolved The data to change
+  * @param mixed options Any options sent in with the alterer
+  * @return mixed Changed resolved data
+  */
 
 
-  TrimAlterer.prototype.alter = function alter(resolved, options) {
-    return resolved.trim();
-  };
+	TrimAlterer.prototype.alter = function alter(resolved, options) {
+		return resolved.trim();
+	};
 
-  return TrimAlterer;
+	return TrimAlterer;
 }(_alterer2.default);
 
 exports.default = TrimAlterer;
 
-},{"./alterer.js":4}],14:[function(require,module,exports){
+},{"./alterer.js":6}],16:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1894,7 +1988,7 @@ exports.RaziloBindEventBinder = _eventBinder2.default;
 exports.RaziloBindInitBinder = _initBinder2.default;
 exports.RaziloBindModelBinder = _modelBinder2.default;
 
-},{"./src/attributes.binder.js":15,"./src/binder.js":16,"./src/checked.binder.js":17,"./src/class.binder.js":18,"./src/disabled.binder.js":19,"./src/else.binder.js":20,"./src/event.binder.js":21,"./src/for.binder.js":22,"./src/hide.binder.js":23,"./src/href.binder.js":24,"./src/html.binder.js":25,"./src/if.binder.js":26,"./src/init.binder.js":27,"./src/model.binder.js":28,"./src/required.binder.js":29,"./src/selected.binder.js":30,"./src/show.binder.js":31,"./src/src.binder.js":32,"./src/style.binder.js":33,"./src/text.binder.js":34,"./src/value.binder.js":35}],15:[function(require,module,exports){
+},{"./src/attributes.binder.js":17,"./src/binder.js":18,"./src/checked.binder.js":19,"./src/class.binder.js":20,"./src/disabled.binder.js":21,"./src/else.binder.js":22,"./src/event.binder.js":23,"./src/for.binder.js":24,"./src/hide.binder.js":25,"./src/href.binder.js":26,"./src/html.binder.js":27,"./src/if.binder.js":28,"./src/init.binder.js":29,"./src/model.binder.js":30,"./src/required.binder.js":31,"./src/selected.binder.js":32,"./src/show.binder.js":33,"./src/src.binder.js":34,"./src/style.binder.js":35,"./src/text.binder.js":36,"./src/value.binder.js":37}],17:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1922,7 +2016,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var AttributesBinder = function (_Binder) {
 	_inherits(AttributesBinder, _Binder);
 
@@ -1975,7 +2068,7 @@ var AttributesBinder = function (_Binder) {
 
 exports.default = AttributesBinder;
 
-},{"./binder.js":16}],16:[function(require,module,exports){
+},{"./binder.js":18}],18:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1988,7 +2081,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  * Binder
  * Generic binder methods used accross all binders
  */
-
 var Binder = function () {
 	function Binder() {
 		_classCallCheck(this, Binder);
@@ -2091,7 +2183,7 @@ var Binder = function () {
 
 exports.default = Binder;
 
-},{"razilobind-core":36}],17:[function(require,module,exports){
+},{"razilobind-core":38}],19:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2119,7 +2211,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var CheckedBinder = function (_Binder) {
 	_inherits(CheckedBinder, _Binder);
 
@@ -2205,7 +2296,7 @@ var CheckedBinder = function (_Binder) {
 
 exports.default = CheckedBinder;
 
-},{"./binder.js":16}],18:[function(require,module,exports){
+},{"./binder.js":18}],20:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2233,7 +2324,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var ClassBinder = function (_Binder) {
 	_inherits(ClassBinder, _Binder);
 
@@ -2291,7 +2381,7 @@ var ClassBinder = function (_Binder) {
 
 exports.default = ClassBinder;
 
-},{"./binder.js":16}],19:[function(require,module,exports){
+},{"./binder.js":18}],21:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2319,39 +2409,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var DisabledBinder = function (_Binder) {
-  _inherits(DisabledBinder, _Binder);
+	_inherits(DisabledBinder, _Binder);
 
-  function DisabledBinder(options, traverser) {
-    _classCallCheck(this, DisabledBinder);
+	function DisabledBinder(options, traverser) {
+		_classCallCheck(this, DisabledBinder);
 
-    var _this = _possibleConstructorReturn(this, _Binder.call(this));
+		var _this = _possibleConstructorReturn(this, _Binder.call(this));
 
-    _this.options = options;
-    _this.traverser = traverser;
-    _this.name = 'disabled';
-    _this.accepts = ['property', 'phantom', 'object', 'string', 'method'];
-    return _this;
-  }
+		_this.options = options;
+		_this.traverser = traverser;
+		_this.name = 'disabled';
+		_this.accepts = ['property', 'phantom', 'object', 'string', 'method'];
+		return _this;
+	}
 
-  /**
-   * bind()
-   * Bind the resolved data by applying styles to node
-   * @param object oldValue The old value of the observed object
-   */
+	/**
+  * bind()
+  * Bind the resolved data by applying styles to node
+  * @param object oldValue The old value of the observed object
+  */
 
 
-  DisabledBinder.prototype.bind = function bind() {
-    if (!!this.resolver.resolved) this.node.setAttribute('disabled', '');else this.node.removeAttribute('disabled');
-  };
+	DisabledBinder.prototype.bind = function bind() {
+		if (!!this.resolver.resolved) this.node.setAttribute('disabled', '');else this.node.removeAttribute('disabled');
+	};
 
-  return DisabledBinder;
+	return DisabledBinder;
 }(_binder2.default);
 
 exports.default = DisabledBinder;
 
-},{"./binder.js":16}],20:[function(require,module,exports){
+},{"./binder.js":18}],22:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2379,7 +2468,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var ElseBinder = function (_Binder) {
 	_inherits(ElseBinder, _Binder);
 
@@ -2421,7 +2509,7 @@ var ElseBinder = function (_Binder) {
 
 exports.default = ElseBinder;
 
-},{"./binder.js":16}],21:[function(require,module,exports){
+},{"./binder.js":18}],23:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2449,7 +2537,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var EventBinder = function (_Binder) {
 	_inherits(EventBinder, _Binder);
 
@@ -2510,7 +2597,7 @@ var EventBinder = function (_Binder) {
 
 exports.default = EventBinder;
 
-},{"./binder.js":16}],22:[function(require,module,exports){
+},{"./binder.js":18}],24:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2539,7 +2626,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  *
  * properties: options, node, resolvable, config, model, accepts
  */
-
 var ForBinder = function (_Binder) {
 	_inherits(ForBinder, _Binder);
 
@@ -2782,7 +2868,7 @@ var ForBinder = function (_Binder) {
 
 exports.default = ForBinder;
 
-},{"./binder.js":16,"razilobind-core":36}],23:[function(require,module,exports){
+},{"./binder.js":18,"razilobind-core":38}],25:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2810,39 +2896,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var HideBinder = function (_Binder) {
-  _inherits(HideBinder, _Binder);
+	_inherits(HideBinder, _Binder);
 
-  function HideBinder(options, traverser) {
-    _classCallCheck(this, HideBinder);
+	function HideBinder(options, traverser) {
+		_classCallCheck(this, HideBinder);
 
-    var _this = _possibleConstructorReturn(this, _Binder.call(this));
+		var _this = _possibleConstructorReturn(this, _Binder.call(this));
 
-    _this.options = options;
-    _this.traverser = traverser;
-    _this.name = 'hide';
-    _this.accepts = [];
-    return _this;
-  }
+		_this.options = options;
+		_this.traverser = traverser;
+		_this.name = 'hide';
+		_this.accepts = [];
+		return _this;
+	}
 
-  /**
-   * bind()
-   * Bind the resolved data by showing or hiding node
-   * @param object oldValue The old value of the observed object
-   */
+	/**
+  * bind()
+  * Bind the resolved data by showing or hiding node
+  * @param object oldValue The old value of the observed object
+  */
 
 
-  HideBinder.prototype.bind = function bind() {
-    if (!!this.resolver.resolved) this.node.style.display = 'none';else this.node.style.display = '';
-  };
+	HideBinder.prototype.bind = function bind() {
+		if (!!this.resolver.resolved) this.node.style.display = 'none';else this.node.style.display = '';
+	};
 
-  return HideBinder;
+	return HideBinder;
 }(_binder2.default);
 
 exports.default = HideBinder;
 
-},{"./binder.js":16}],24:[function(require,module,exports){
+},{"./binder.js":18}],26:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2870,40 +2955,39 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var HrefBinder = function (_Binder) {
-  _inherits(HrefBinder, _Binder);
+	_inherits(HrefBinder, _Binder);
 
-  function HrefBinder(options, traverser) {
-    _classCallCheck(this, HrefBinder);
+	function HrefBinder(options, traverser) {
+		_classCallCheck(this, HrefBinder);
 
-    var _this = _possibleConstructorReturn(this, _Binder.call(this));
+		var _this = _possibleConstructorReturn(this, _Binder.call(this));
 
-    _this.options = options;
-    _this.traverser = traverser;
-    _this.name = 'href';
-    _this.accepts = ['property', 'phantom', 'object', 'string', 'method'];
-    return _this;
-  }
+		_this.options = options;
+		_this.traverser = traverser;
+		_this.name = 'href';
+		_this.accepts = ['property', 'phantom', 'object', 'string', 'method'];
+		return _this;
+	}
 
-  /**
-   * bind()
-   * Bind the resolved data by applying styles to node
-   * @param object oldValue The old value of the observed object
-   */
+	/**
+  * bind()
+  * Bind the resolved data by applying styles to node
+  * @param object oldValue The old value of the observed object
+  */
 
 
-  HrefBinder.prototype.bind = function bind() {
-    // this.resolver.resolved
-    if (typeof this.resolver.resolved !== 'string' || this.resolver.resolved.length < 1) this.node.removeAttribute('href');else this.node.setAttribute('href', this.resolver.resolved);
-  };
+	HrefBinder.prototype.bind = function bind() {
+		// this.resolver.resolved
+		if (typeof this.resolver.resolved !== 'string' || this.resolver.resolved.length < 1) this.node.removeAttribute('href');else this.node.setAttribute('href', this.resolver.resolved);
+	};
 
-  return HrefBinder;
+	return HrefBinder;
 }(_binder2.default);
 
 exports.default = HrefBinder;
 
-},{"./binder.js":16}],25:[function(require,module,exports){
+},{"./binder.js":18}],27:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2932,39 +3016,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var HtmlBinder = function (_Binder) {
-  _inherits(HtmlBinder, _Binder);
+	_inherits(HtmlBinder, _Binder);
 
-  function HtmlBinder(options, traverser) {
-    _classCallCheck(this, HtmlBinder);
+	function HtmlBinder(options, traverser) {
+		_classCallCheck(this, HtmlBinder);
 
-    var _this = _possibleConstructorReturn(this, _Binder.call(this));
+		var _this = _possibleConstructorReturn(this, _Binder.call(this));
 
-    _this.options = options;
-    _this.traverser = traverser;
-    _this.name = 'html';
-    _this.accepts = ['string', 'property', 'phantom', 'method'];
-    return _this;
-  }
+		_this.options = options;
+		_this.traverser = traverser;
+		_this.name = 'html';
+		_this.accepts = ['string', 'property', 'phantom', 'method'];
+		return _this;
+	}
 
-  /**
-   * bind()
-   * Bind the resolved data to the node replacing contents
-   * @param object oldValue The old value of the observed object
-   */
+	/**
+  * bind()
+  * Bind the resolved data to the node replacing contents
+  * @param object oldValue The old value of the observed object
+  */
 
 
-  HtmlBinder.prototype.bind = function bind() {
-    this.node.innerHTML = this.resolver.resolved;
-  };
+	HtmlBinder.prototype.bind = function bind() {
+		this.node.innerHTML = this.resolver.resolved;
+	};
 
-  return HtmlBinder;
+	return HtmlBinder;
 }(_binder2.default);
 
 exports.default = HtmlBinder;
 
-},{"./binder.js":16}],26:[function(require,module,exports){
+},{"./binder.js":18}],28:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2992,7 +3075,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var IfBinder = function (_Binder) {
 	_inherits(IfBinder, _Binder);
 
@@ -3034,7 +3116,7 @@ var IfBinder = function (_Binder) {
 
 exports.default = IfBinder;
 
-},{"./binder.js":16}],27:[function(require,module,exports){
+},{"./binder.js":18}],29:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3063,52 +3145,51 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var InitBinder = function (_Binder) {
-  _inherits(InitBinder, _Binder);
+	_inherits(InitBinder, _Binder);
 
-  function InitBinder(options, traverser) {
-    _classCallCheck(this, InitBinder);
+	function InitBinder(options, traverser) {
+		_classCallCheck(this, InitBinder);
 
-    var _this = _possibleConstructorReturn(this, _Binder.call(this));
+		var _this = _possibleConstructorReturn(this, _Binder.call(this));
 
-    _this.options = options;
-    _this.traverser = traverser;
-    _this.name = 'init';
-    _this.delayMethod = true;
-    _this.accepts = ['method'];
-    return _this;
-  }
+		_this.options = options;
+		_this.traverser = traverser;
+		_this.name = 'init';
+		_this.delayMethod = true;
+		_this.accepts = ['method'];
+		return _this;
+	}
 
-  /**
-   * bind()
-   * Bind the resolved data by applying styles to node
-   * @param object oldValue The old value of the observed object
-   */
-
-
-  InitBinder.prototype.bind = function bind(object) {
-    document.addEventListener("DOMContentLoaded", this.listener.bind(this), false);
-  };
-
-  /**
-   * listener()
-   * Catch events on nodes and run functions set.
-   * @param event event The event that triggers the update
-   */
+	/**
+  * bind()
+  * Bind the resolved data by applying styles to node
+  * @param object oldValue The old value of the observed object
+  */
 
 
-  InitBinder.prototype.listener = function listener(event) {
-    event.stopPropagation();
-    this.resolver.resolved.method.apply(this.model, this.resolver.resolved.values);
-  };
+	InitBinder.prototype.bind = function bind(object) {
+		document.addEventListener("DOMContentLoaded", this.listener.bind(this), false);
+	};
 
-  return InitBinder;
+	/**
+  * listener()
+  * Catch events on nodes and run functions set.
+  * @param event event The event that triggers the update
+  */
+
+
+	InitBinder.prototype.listener = function listener(event) {
+		event.stopPropagation();
+		this.resolver.resolved.method.apply(this.model, this.resolver.resolved.values);
+	};
+
+	return InitBinder;
 }(_binder2.default);
 
 exports.default = InitBinder;
 
-},{"./binder.js":16}],28:[function(require,module,exports){
+},{"./binder.js":18}],30:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3139,41 +3220,40 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var ModelBinder = function (_Binder) {
-  _inherits(ModelBinder, _Binder);
+	_inherits(ModelBinder, _Binder);
 
-  function ModelBinder(options, traverser) {
-    _classCallCheck(this, ModelBinder);
+	function ModelBinder(options, traverser) {
+		_classCallCheck(this, ModelBinder);
 
-    var _this = _possibleConstructorReturn(this, _Binder.call(this));
+		var _this = _possibleConstructorReturn(this, _Binder.call(this));
 
-    _this.options = options;
-    _this.traverser = traverser;
-    _this.name = 'model';
-    _this.accepts = ['property', 'phantom', 'method'];
-    return _this;
-  }
+		_this.options = options;
+		_this.traverser = traverser;
+		_this.name = 'model';
+		_this.accepts = ['property', 'phantom', 'method'];
+		return _this;
+	}
 
-  /**
-   * bind()
-   * Bind the resolved data to the node replacing contents
-   * @param object oldValue The old value of the observed object
-   */
+	/**
+  * bind()
+  * Bind the resolved data to the node replacing contents
+  * @param object oldValue The old value of the observed object
+  */
 
 
-  ModelBinder.prototype.bind = function bind(oldValue, path) {
-    // set value
-    this.node.setAttribute('model', _typeof(this.resolver.resolved) === 'object' ? '[object]@' + new Date().getTime() : this.resolver.resolved);
-    this.node.model = this.resolver.resolved;
-  };
+	ModelBinder.prototype.bind = function bind(oldValue, path) {
+		// set value
+		this.node.setAttribute('model', _typeof(this.resolver.resolved) === 'object' ? '[object]@' + new Date().getTime() : this.resolver.resolved);
+		this.node.model = this.resolver.resolved;
+	};
 
-  return ModelBinder;
+	return ModelBinder;
 }(_binder2.default);
 
 exports.default = ModelBinder;
 
-},{"./binder.js":16}],29:[function(require,module,exports){
+},{"./binder.js":18}],31:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3201,39 +3281,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var RequiredBinder = function (_Binder) {
-  _inherits(RequiredBinder, _Binder);
+	_inherits(RequiredBinder, _Binder);
 
-  function RequiredBinder(options, traverser) {
-    _classCallCheck(this, RequiredBinder);
+	function RequiredBinder(options, traverser) {
+		_classCallCheck(this, RequiredBinder);
 
-    var _this = _possibleConstructorReturn(this, _Binder.call(this));
+		var _this = _possibleConstructorReturn(this, _Binder.call(this));
 
-    _this.options = options;
-    _this.traverser = traverser;
-    _this.name = 'required';
-    _this.accepts = ['property', 'phantom', 'object', 'string', 'method'];
-    return _this;
-  }
+		_this.options = options;
+		_this.traverser = traverser;
+		_this.name = 'required';
+		_this.accepts = ['property', 'phantom', 'object', 'string', 'method'];
+		return _this;
+	}
 
-  /**
-   * bind()
-   * Bind the resolved data by applying styles to node
-   * @param object oldValue The old value of the observed object
-   */
+	/**
+  * bind()
+  * Bind the resolved data by applying styles to node
+  * @param object oldValue The old value of the observed object
+  */
 
 
-  RequiredBinder.prototype.bind = function bind() {
-    if (!!this.resolver.resolved) this.node.setAttribute('required', '');else this.node.removeAttribute('required');
-  };
+	RequiredBinder.prototype.bind = function bind() {
+		if (!!this.resolver.resolved) this.node.setAttribute('required', '');else this.node.removeAttribute('required');
+	};
 
-  return RequiredBinder;
+	return RequiredBinder;
 }(_binder2.default);
 
 exports.default = RequiredBinder;
 
-},{"./binder.js":16}],30:[function(require,module,exports){
+},{"./binder.js":18}],32:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3263,42 +3342,41 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var SelectedBinder = function (_Binder) {
-  _inherits(SelectedBinder, _Binder);
+	_inherits(SelectedBinder, _Binder);
 
-  function SelectedBinder(options, traverser) {
-    _classCallCheck(this, SelectedBinder);
+	function SelectedBinder(options, traverser) {
+		_classCallCheck(this, SelectedBinder);
 
-    var _this = _possibleConstructorReturn(this, _Binder.call(this));
+		var _this = _possibleConstructorReturn(this, _Binder.call(this));
 
-    _this.options = options;
-    _this.traverser = traverser;
-    _this.name = 'selected';
-    _this.accepts = ['property', 'phantom', 'object', 'string', 'method'];
-    return _this;
-  }
+		_this.options = options;
+		_this.traverser = traverser;
+		_this.name = 'selected';
+		_this.accepts = ['property', 'phantom', 'object', 'string', 'method'];
+		return _this;
+	}
 
-  /**
-   * bind()
-   * Bind the resolved data by applying styles to node
-   * @param object oldValue The old value of the observed object
-   */
+	/**
+  * bind()
+  * Bind the resolved data by applying styles to node
+  * @param object oldValue The old value of the observed object
+  */
 
 
-  SelectedBinder.prototype.bind = function bind() {
-    if (typeof this.resolver.resolved === 'string' && this.resolver.resolved.length > 0) this.node.setAttribute('selected', this.resolver.resolved);else if (_typeof(this.resolver.resolved) === 'object' && this.resolver.resolved != null) {
-      this.node.setAttribute('selected', '[object]@' + new Date().getTime());
-      this.node.selected = this.resolver.resolved;
-    } else if (!!this.resolver.resolved) this.node.setAttribute('selected', '');else this.node.removeAttribute('selected');
-  };
+	SelectedBinder.prototype.bind = function bind() {
+		if (typeof this.resolver.resolved === 'string' && this.resolver.resolved.length > 0) this.node.setAttribute('selected', this.resolver.resolved);else if (_typeof(this.resolver.resolved) === 'object' && this.resolver.resolved != null) {
+			this.node.setAttribute('selected', '[object]@' + new Date().getTime());
+			this.node.selected = this.resolver.resolved;
+		} else if (!!this.resolver.resolved) this.node.setAttribute('selected', '');else this.node.removeAttribute('selected');
+	};
 
-  return SelectedBinder;
+	return SelectedBinder;
 }(_binder2.default);
 
 exports.default = SelectedBinder;
 
-},{"./binder.js":16}],31:[function(require,module,exports){
+},{"./binder.js":18}],33:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3326,39 +3404,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var ShowBinder = function (_Binder) {
-  _inherits(ShowBinder, _Binder);
+	_inherits(ShowBinder, _Binder);
 
-  function ShowBinder(options, traverser) {
-    _classCallCheck(this, ShowBinder);
+	function ShowBinder(options, traverser) {
+		_classCallCheck(this, ShowBinder);
 
-    var _this = _possibleConstructorReturn(this, _Binder.call(this));
+		var _this = _possibleConstructorReturn(this, _Binder.call(this));
 
-    _this.options = options;
-    _this.traverser = traverser;
-    _this.name = 'show';
-    _this.accepts = [];
-    return _this;
-  }
+		_this.options = options;
+		_this.traverser = traverser;
+		_this.name = 'show';
+		_this.accepts = [];
+		return _this;
+	}
 
-  /**
-   * bind()
-   * Bind the resolved data by showing hiding the node
-   * @param object oldValue The old value of the observed object
-   */
+	/**
+  * bind()
+  * Bind the resolved data by showing hiding the node
+  * @param object oldValue The old value of the observed object
+  */
 
 
-  ShowBinder.prototype.bind = function bind() {
-    if (!!this.resolver.resolved) this.node.style.display = '';else this.node.style.display = 'none';
-  };
+	ShowBinder.prototype.bind = function bind() {
+		if (!!this.resolver.resolved) this.node.style.display = '';else this.node.style.display = 'none';
+	};
 
-  return ShowBinder;
+	return ShowBinder;
 }(_binder2.default);
 
 exports.default = ShowBinder;
 
-},{"./binder.js":16}],32:[function(require,module,exports){
+},{"./binder.js":18}],34:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3386,40 +3463,39 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var SrcBinder = function (_Binder) {
-  _inherits(SrcBinder, _Binder);
+	_inherits(SrcBinder, _Binder);
 
-  function SrcBinder(options, traverser) {
-    _classCallCheck(this, SrcBinder);
+	function SrcBinder(options, traverser) {
+		_classCallCheck(this, SrcBinder);
 
-    var _this = _possibleConstructorReturn(this, _Binder.call(this));
+		var _this = _possibleConstructorReturn(this, _Binder.call(this));
 
-    _this.options = options;
-    _this.traverser = traverser;
-    _this.name = 'src';
-    _this.accepts = ['property', 'phantom', 'object', 'string', 'method'];
-    return _this;
-  }
+		_this.options = options;
+		_this.traverser = traverser;
+		_this.name = 'src';
+		_this.accepts = ['property', 'phantom', 'object', 'string', 'method'];
+		return _this;
+	}
 
-  /**
-   * bind()
-   * Bind the resolved data by applying styles to node
-   * @param object oldValue The old value of the observed object
-   */
+	/**
+  * bind()
+  * Bind the resolved data by applying styles to node
+  * @param object oldValue The old value of the observed object
+  */
 
 
-  SrcBinder.prototype.bind = function bind() {
-    // this.resolver.resolved
-    if (typeof this.resolver.resolved !== 'string' || this.resolver.resolved.length < 1) this.node.removeAttribute('src');else this.node.setAttribute('src', this.resolver.resolved);
-  };
+	SrcBinder.prototype.bind = function bind() {
+		// this.resolver.resolved
+		if (typeof this.resolver.resolved !== 'string' || this.resolver.resolved.length < 1) this.node.removeAttribute('src');else this.node.setAttribute('src', this.resolver.resolved);
+	};
 
-  return SrcBinder;
+	return SrcBinder;
 }(_binder2.default);
 
 exports.default = SrcBinder;
 
-},{"./binder.js":16}],33:[function(require,module,exports){
+},{"./binder.js":18}],35:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3449,7 +3525,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var StyleBinder = function (_Binder) {
 	_inherits(StyleBinder, _Binder);
 
@@ -3493,7 +3568,7 @@ var StyleBinder = function (_Binder) {
 
 exports.default = StyleBinder;
 
-},{"./binder.js":16}],34:[function(require,module,exports){
+},{"./binder.js":18}],36:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3523,39 +3598,38 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var TextBinder = function (_Binder) {
-  _inherits(TextBinder, _Binder);
+	_inherits(TextBinder, _Binder);
 
-  function TextBinder(options, traverser) {
-    _classCallCheck(this, TextBinder);
+	function TextBinder(options, traverser) {
+		_classCallCheck(this, TextBinder);
 
-    var _this = _possibleConstructorReturn(this, _Binder.call(this));
+		var _this = _possibleConstructorReturn(this, _Binder.call(this));
 
-    _this.options = options;
-    _this.traverser = traverser;
-    _this.name = 'text';
-    _this.accepts = [];
-    return _this;
-  }
+		_this.options = options;
+		_this.traverser = traverser;
+		_this.name = 'text';
+		_this.accepts = [];
+		return _this;
+	}
 
-  /**
-   * bind()
-   * Bind the resolved data to the node replacing contents
-   * @param object oldValue The old value of the observed object
-   */
+	/**
+  * bind()
+  * Bind the resolved data to the node replacing contents
+  * @param object oldValue The old value of the observed object
+  */
 
 
-  TextBinder.prototype.bind = function bind(oldValue, path) {
-    this.node.innerText = String(_typeof(this.resolver.resolved) === 'symbol' ? Symbol(this.resolver.resolved) : this.resolver.resolved);
-  };
+	TextBinder.prototype.bind = function bind(oldValue, path) {
+		this.node.innerText = String(_typeof(this.resolver.resolved) === 'symbol' ? Symbol(this.resolver.resolved) : this.resolver.resolved);
+	};
 
-  return TextBinder;
+	return TextBinder;
 }(_binder2.default);
 
 exports.default = TextBinder;
 
-},{"./binder.js":16}],35:[function(require,module,exports){
+},{"./binder.js":18}],37:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3585,7 +3659,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * method: build(model) { return binder }
  * method: update(newValue, oldValue) { }
  */
-
 var ValueBinder = function (_Binder) {
 	_inherits(ValueBinder, _Binder);
 
@@ -3697,7 +3770,7 @@ var ValueBinder = function (_Binder) {
 
 exports.default = ValueBinder;
 
-},{"./binder.js":16}],36:[function(require,module,exports){
+},{"./binder.js":18}],38:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3731,7 +3804,7 @@ exports.RaziloBindCoreTraverser = _traverser2.default;
 exports.RaziloBindCoreObserver = _observer2.default;
 exports.RaziloBindDateFormat = _dateFormat2.default;
 
-},{"./src/core.js":37,"./src/date-format.js":38,"./src/detector.js":39,"./src/observer.js":40,"./src/traverser.js":41}],37:[function(require,module,exports){
+},{"./src/core.js":39,"./src/date-format.js":40,"./src/detector.js":41,"./src/observer.js":42,"./src/traverser.js":43}],39:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3752,7 +3825,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  * RaziloBind Binding Library
  * Offers View-Model binding between js object and html view
  */
-
 var Core = function () {
 	function Core(options) {
 		_classCallCheck(this, Core);
@@ -3810,7 +3882,7 @@ var Core = function () {
 
 exports.default = Core;
 
-},{"./observer.js":40,"./traverser.js":41}],38:[function(require,module,exports){
+},{"./observer.js":42,"./traverser.js":43}],40:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3841,7 +3913,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  * The date defaults to the current date/time.
  * The mask defaults to dateFormat.masks.default.
  */
-
 var DateFormat = function () {
 	function DateFormat() {
 		_classCallCheck(this, DateFormat);
@@ -3993,7 +4064,7 @@ var DateFormat = function () {
 
 exports.default = DateFormat;
 
-},{}],39:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4013,7 +4084,6 @@ var Detector = function () {
   * creates it own insance e.g. for loops, as they are generated on the fly.
   * return array of binders
   */
-
 	Detector.binders = function binders(node, model, options, traverser) {
 		if (!Detector.defaultBinders || _typeof(Detector.defaultBinders) !== 'object') return;
 
@@ -4096,7 +4166,7 @@ var Detector = function () {
 
 exports.default = Detector;
 
-},{}],40:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4106,98 +4176,97 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var Observer = function () {
-  function Observer() {
-    _classCallCheck(this, Observer);
-  }
+	function Observer() {
+		_classCallCheck(this, Observer);
+	}
 
-  /**
-   * object()
-   * Observe an object, applying a callback if changed
-   * This method uses native Proxy available for clean observing, returning proxied object
-      *
-   * NOTE:
-   * If native proxy not available, proxy will be polyfilled and fallback to object observe polyfill for observing
-   * and proxy polyfill for those who  want to use it (caveat, proxy polyfill does not allow mutating of arrays) To change a polyfilled proxy
-   * you will have to replace whole array. This is why we fall back to OO polyfill for observing but allow you to still use Proxy polyfill
-   * if you want to for your app with this caveat.
-   *
-   * DEPS:
-   * This class relies on the smiffy6969/proxy-oo-polyfill (npm install proxy-oo-polyfill) for hybrid proxy with oo observing.
-   *
-   * @param obj Object The model to proxy
-   * @param fn Function The calback function to run on change
-   * @param deep Boolean Should we go deep or just proxy/observe root level
-   * @param prefix String Used to set prefix of path in object (should be blank when called)
-   * @return Object The proxied object
-   */
+	/**
+  * object()
+  * Observe an object, applying a callback if changed
+  * This method uses native Proxy available for clean observing, returning proxied object
+     *
+  * NOTE:
+  * If native proxy not available, proxy will be polyfilled and fallback to object observe polyfill for observing
+  * and proxy polyfill for those who  want to use it (caveat, proxy polyfill does not allow mutating of arrays) To change a polyfilled proxy
+  * you will have to replace whole array. This is why we fall back to OO polyfill for observing but allow you to still use Proxy polyfill
+  * if you want to for your app with this caveat.
+  *
+  * DEPS:
+  * This class relies on the smiffy6969/proxy-oo-polyfill (npm install proxy-oo-polyfill) for hybrid proxy with oo observing.
+  *
+  * @param obj Object The model to proxy
+  * @param fn Function The calback function to run on change
+  * @param deep Boolean Should we go deep or just proxy/observe root level
+  * @param prefix String Used to set prefix of path in object (should be blank when called)
+  * @return Object The proxied object
+  */
+	Observer.object = function object(obj, fn, deep, prefix) {
+		if (!Proxy.oo) return Observer.proxy(obj, fn, deep, prefix);
+		Observer.oo(obj, fn, deep, prefix);
+		return obj;
+	};
 
-  Observer.object = function object(obj, fn, deep, prefix) {
-    if (!Proxy.oo) return Observer.proxy(obj, fn, deep, prefix);
-    Observer.oo(obj, fn, deep, prefix);
-    return obj;
-  };
-
-  /**
-   * proxy()
-   *
-   * Use native proxy to extend object model, allowing us to observe changes and instigate callback on changes
-   * @param obj Object The model to proxy
-   * @param fn Function The calback function to run on change
-   * @param deep Boolean Should we go deep or just proxy/observe root level
-   * @param prefix String Used to set prefix of path in object (should be blank when called)
-   * @return Object The proxied object
-   */
-
-
-  Observer.proxy = function proxy(obj, fn, deep, prefix) {
-    prefix = typeof prefix === 'undefined' ? '' : prefix;
-    if (typeof this.object === 'undefined') this.object = obj;
-    return new Proxy(obj, {
-      set: function set(target, prop, value) {
-        var old = target[prop];
-        target[prop] = value;
-        fn(prefix + prop, old, value);
-        return true;
-      },
-      get: function get(target, prop) {
-        var val = target[prop];
-
-        if (!!deep && val instanceof Object && typeof prop === 'string' && val !== null && !(val instanceof Date)) return Observer.object(val, fn, deep, prefix + prop + '.');
-        return val;
-      }
-    });
-  };
-
-  /**
-   * oo()
-   *
-   * Fallback observing method to allow us to watch changes on object without native proxy
-   * @param obj Object The model to proxy
-   * @param fn Function The calback function to run on change
-   * @param deep Boolean Should we go deep or just proxy/observe root level
-   * @param prefix String Used to set prefix of path in object (should be blank when called)
-   */
+	/**
+  * proxy()
+  *
+  * Use native proxy to extend object model, allowing us to observe changes and instigate callback on changes
+  * @param obj Object The model to proxy
+  * @param fn Function The calback function to run on change
+  * @param deep Boolean Should we go deep or just proxy/observe root level
+  * @param prefix String Used to set prefix of path in object (should be blank when called)
+  * @return Object The proxied object
+  */
 
 
-  Observer.oo = function oo(obj, fn, deep, prefix) {
-    prefix = typeof prefix === 'undefined' ? '' : prefix;
-    Proxy.oo.observe(obj, function (changes) {
-      for (var i = 0; i < changes.length; i++) {
-        fn(prefix + changes[i].name, obj[changes[i].name], changes[i].oldValue, changes[i].type);
-        if (changes[i].type == 'add' && !!deep && obj[changes[i].name] && _typeof(obj[changes[i].name]) === 'object') Observer.oo(obj[changes[i].name], fn, deep, prefix + changes[i].name + '.');
-      }
-    });
-    for (var name in obj) {
-      if (!!deep && obj[name] && _typeof(obj[name]) === 'object') Observer.oo(obj[name], fn, deep, prefix + name + '.');
-    }
-  };
+	Observer.proxy = function proxy(obj, fn, deep, prefix) {
+		prefix = typeof prefix === 'undefined' ? '' : prefix;
+		if (typeof this.object === 'undefined') this.object = obj;
+		return new Proxy(obj, {
+			set: function set(target, prop, value) {
+				var old = target[prop];
+				target[prop] = value;
+				fn(prefix + prop, old, value);
+				return true;
+			},
+			get: function get(target, prop) {
+				var val = target[prop];
 
-  return Observer;
+				if (!!deep && val instanceof Object && typeof prop === 'string' && val !== null && !(val instanceof Date)) return Observer.object(val, fn, deep, prefix + prop + '.');
+				return val;
+			}
+		});
+	};
+
+	/**
+  * oo()
+  *
+  * Fallback observing method to allow us to watch changes on object without native proxy
+  * @param obj Object The model to proxy
+  * @param fn Function The calback function to run on change
+  * @param deep Boolean Should we go deep or just proxy/observe root level
+  * @param prefix String Used to set prefix of path in object (should be blank when called)
+  */
+
+
+	Observer.oo = function oo(obj, fn, deep, prefix) {
+		prefix = typeof prefix === 'undefined' ? '' : prefix;
+		Proxy.oo.observe(obj, function (changes) {
+			for (var i = 0; i < changes.length; i++) {
+				fn(prefix + changes[i].name, obj[changes[i].name], changes[i].oldValue, changes[i].type);
+				if (changes[i].type == 'add' && !!deep && obj[changes[i].name] && _typeof(obj[changes[i].name]) === 'object') Observer.oo(obj[changes[i].name], fn, deep, prefix + changes[i].name + '.');
+			}
+		});
+		for (var name in obj) {
+			if (!!deep && obj[name] && _typeof(obj[name]) === 'object') Observer.oo(obj[name], fn, deep, prefix + name + '.');
+		}
+	};
+
+	return Observer;
 }();
 
 exports.default = Observer;
 
-},{}],41:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4250,7 +4319,7 @@ var Traverser = function () {
 
 exports.default = Traverser;
 
-},{"./detector.js":39}],42:[function(require,module,exports){
+},{"./detector.js":41}],44:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4304,7 +4373,7 @@ exports.RaziloBindPhantomResolver = _phantomResolver2.default;
 exports.RaziloBindPropertyResolver = _propertyResolver2.default;
 exports.RaziloBindStringResolver = _stringResolver2.default;
 
-},{"./src/array.resolver.js":43,"./src/boolean.resolver.js":44,"./src/method.resolver.js":45,"./src/number.resolver.js":46,"./src/object.resolver.js":47,"./src/phantom.resolver.js":48,"./src/property.resolver.js":49,"./src/resolver.js":50,"./src/string.resolver.js":51}],43:[function(require,module,exports){
+},{"./src/array.resolver.js":45,"./src/boolean.resolver.js":46,"./src/method.resolver.js":47,"./src/number.resolver.js":48,"./src/object.resolver.js":49,"./src/phantom.resolver.js":50,"./src/property.resolver.js":51,"./src/resolver.js":52,"./src/string.resolver.js":53}],45:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4358,7 +4427,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * property: data
  * method: detect(data) { return bool }
  */
-
 var ArrayResolver = function (_Resolver) {
 	_inherits(ArrayResolver, _Resolver);
 
@@ -4459,7 +4527,7 @@ var ArrayResolver = function (_Resolver) {
 
 exports.default = ArrayResolver;
 
-},{"./boolean.resolver.js":44,"./method.resolver.js":45,"./number.resolver.js":46,"./object.resolver.js":47,"./phantom.resolver.js":48,"./property.resolver.js":49,"./resolver.js":50,"./string.resolver.js":51}],44:[function(require,module,exports){
+},{"./boolean.resolver.js":46,"./method.resolver.js":47,"./number.resolver.js":48,"./object.resolver.js":49,"./phantom.resolver.js":50,"./property.resolver.js":51,"./resolver.js":52,"./string.resolver.js":53}],46:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4485,7 +4553,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * property: data
  * method: detect(data) { return bool }
  */
-
 var BooleanResolver = function (_Resolver) {
 	_inherits(BooleanResolver, _Resolver);
 
@@ -4541,7 +4608,7 @@ var BooleanResolver = function (_Resolver) {
 
 exports.default = BooleanResolver;
 
-},{"./resolver.js":50}],45:[function(require,module,exports){
+},{"./resolver.js":52}],47:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4595,7 +4662,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * property: data
  * method: detect(data) { return bool }
  */
-
 var MethodResolver = function (_Resolver) {
 	_inherits(MethodResolver, _Resolver);
 
@@ -4700,7 +4766,7 @@ var MethodResolver = function (_Resolver) {
 
 exports.default = MethodResolver;
 
-},{"./array.resolver.js":43,"./boolean.resolver.js":44,"./number.resolver.js":46,"./object.resolver.js":47,"./phantom.resolver.js":48,"./property.resolver.js":49,"./resolver.js":50,"./string.resolver.js":51}],46:[function(require,module,exports){
+},{"./array.resolver.js":45,"./boolean.resolver.js":46,"./number.resolver.js":48,"./object.resolver.js":49,"./phantom.resolver.js":50,"./property.resolver.js":51,"./resolver.js":52,"./string.resolver.js":53}],48:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4726,7 +4792,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * property: data
  * method: detect(data) { return bool }
  */
-
 var NumberResolver = function (_Resolver) {
 	_inherits(NumberResolver, _Resolver);
 
@@ -4782,7 +4847,7 @@ var NumberResolver = function (_Resolver) {
 
 exports.default = NumberResolver;
 
-},{"./resolver.js":50}],47:[function(require,module,exports){
+},{"./resolver.js":52}],49:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4836,7 +4901,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * property: data
  * method: detect(data) { return bool }
  */
-
 var ObjectResolver = function (_Resolver) {
 	_inherits(ObjectResolver, _Resolver);
 
@@ -4958,7 +5022,7 @@ var ObjectResolver = function (_Resolver) {
 
 exports.default = ObjectResolver;
 
-},{"./array.resolver.js":43,"./boolean.resolver.js":44,"./method.resolver.js":45,"./number.resolver.js":46,"./phantom.resolver.js":48,"./property.resolver.js":49,"./resolver.js":50,"./string.resolver.js":51}],48:[function(require,module,exports){
+},{"./array.resolver.js":45,"./boolean.resolver.js":46,"./method.resolver.js":47,"./number.resolver.js":48,"./phantom.resolver.js":50,"./property.resolver.js":51,"./resolver.js":52,"./string.resolver.js":53}],50:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4989,7 +5053,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * property: data
  * method: detect(data) { return bool }
  */
-
 var PhantomResolver = function (_Resolver) {
 	_inherits(PhantomResolver, _Resolver);
 
@@ -5092,7 +5155,7 @@ var PhantomResolver = function (_Resolver) {
 
 exports.default = PhantomResolver;
 
-},{"./property.resolver.js":49,"./resolver.js":50}],49:[function(require,module,exports){
+},{"./property.resolver.js":51,"./resolver.js":52}],51:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -5122,7 +5185,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * property: data
  * method: detect(data) { return bool }
  */
-
 var PropertyResolver = function (_Resolver) {
 	_inherits(PropertyResolver, _Resolver);
 
@@ -5231,7 +5293,7 @@ var PropertyResolver = function (_Resolver) {
 
 exports.default = PropertyResolver;
 
-},{"./phantom.resolver.js":48,"./resolver.js":50}],50:[function(require,module,exports){
+},{"./phantom.resolver.js":50,"./resolver.js":52}],52:[function(require,module,exports){
 "use strict";
 
 exports.__esModule = true;
@@ -5242,7 +5304,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
  * Resolver
  * Generic resolver methods used accross all resolvers
  */
-
 var Resolver = function () {
 	function Resolver() {
 		_classCallCheck(this, Resolver);
@@ -5281,7 +5342,7 @@ var Resolver = function () {
 
 exports.default = Resolver;
 
-},{}],51:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -5307,7 +5368,6 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
  * property: data
  * method: detect(data) { return bool }
  */
-
 var StringResolver = function (_Resolver) {
 	_inherits(StringResolver, _Resolver);
 
@@ -5363,30 +5423,12 @@ var StringResolver = function (_Resolver) {
 
 exports.default = StringResolver;
 
-},{"./resolver.js":50}],52:[function(require,module,exports){
+},{"./resolver.js":52}],54:[function(require,module,exports){
 'use strict';
 
-var _typeof2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+exports.__esModule = true;
 
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-
-var _typeof = typeof Symbol === "function" && _typeof2(Symbol.iterator) === "symbol" ? function (obj) {
-	return typeof obj === "undefined" ? "undefined" : _typeof2(obj);
-} : function (obj) {
-	return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj === "undefined" ? "undefined" : _typeof2(obj);
-};
-
-var _createClass = function () {
-	function defineProperties(target, props) {
-		for (var i = 0; i < props.length; i++) {
-			var descriptor = props[i];descriptor.enumerable = descriptor.enumerable || false;descriptor.configurable = true;if ("value" in descriptor) descriptor.writable = true;Object.defineProperty(target, descriptor.key, descriptor);
-		}
-	}return function (Constructor, protoProps, staticProps) {
-		if (protoProps) defineProperties(Constructor.prototype, protoProps);if (staticProps) defineProperties(Constructor, staticProps);return Constructor;
-	};
-}();
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
 var _razilobindCore = require('razilobind-core');
 
@@ -5396,30 +5438,17 @@ var _razilobindBinder = require('razilobind-binder');
 
 var _razilobindResolver = require('razilobind-resolver');
 
-function _classCallCheck(instance, Constructor) {
-	if (!(instance instanceof Constructor)) {
-		throw new TypeError("Cannot call a class as a function");
-	}
-}
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-function _possibleConstructorReturn(self, call) {
-	if (!self) {
-		throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
-	}return call && ((typeof call === "undefined" ? "undefined" : _typeof2(call)) === "object" || typeof call === "function") ? call : self;
-}
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
-function _inherits(subClass, superClass) {
-	if (typeof superClass !== "function" && superClass !== null) {
-		throw new TypeError("Super expression must either be null or a function, not " + (typeof superClass === "undefined" ? "undefined" : _typeof2(superClass)));
-	}subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } });if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass;
-}
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
 /**
  * RaziloBind Binding Library
  * Packages up the module with extension support if running as complete standalone binder to allow direct injected alterers, binders and resolvers
  * Offers View-Model binding between js object and html view
  */
-
 var RaziloBind = function (_RaziloBindCore) {
 	_inherits(RaziloBind, _RaziloBindCore);
 
@@ -5427,8 +5456,7 @@ var RaziloBind = function (_RaziloBindCore) {
 		_classCallCheck(this, RaziloBind);
 
 		// Inject default alterers
-
-		var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(RaziloBind).call(this, options));
+		var _this = _possibleConstructorReturn(this, _RaziloBindCore.call(this, options));
 
 		_razilobindCore.RaziloBindCoreDetector.defaultAlterers = {
 			TrimAlterer: _razilobindAlterer.RaziloBindTrimAlterer,
@@ -5487,350 +5515,44 @@ var RaziloBind = function (_RaziloBindCore) {
   * @param array alterers An array of custom alterers to inject into Detector
   */
 
-	_createClass(RaziloBind, [{
-		key: 'addAlterers',
-		value: function addAlterers(alterers) {
-			if (!alterers || (typeof alterers === 'undefined' ? 'undefined' : _typeof(alterers)) !== 'object') return;
-			_razilobindCore.RaziloBindCoreDetector.customAlterers = alterers;
-		}
 
-		/**
-   * addBinder()
-   * Add custom binders
-   *
-   * @param array binders An array of custom binders to inject into Detector
-   */
+	RaziloBind.prototype.addAlterers = function addAlterers(alterers) {
+		if (!alterers || (typeof alterers === 'undefined' ? 'undefined' : _typeof(alterers)) !== 'object') return;
+		_razilobindCore.RaziloBindCoreDetector.customAlterers = alterers;
+	};
 
-	}, {
-		key: 'addBinders',
-		value: function addBinders(binders) {
-			if (!binders || (typeof binders === 'undefined' ? 'undefined' : _typeof(binders)) !== 'object') return;
-			_razilobindCore.RaziloBindCoreDetector.customBinders = binders;
-		}
+	/**
+  * addBinder()
+  * Add custom binders
+  *
+  * @param array binders An array of custom binders to inject into Detector
+  */
 
-		/**
-   * addResolvers()
-   * Add custom resolvers
-   *
-   * @param array resolvers An array of custom resolvers to inject into Detector
-   */
 
-	}, {
-		key: 'addResolvers',
-		value: function addResolvers(resolvers) {
-			if (!resolvers || (typeof resolvers === 'undefined' ? 'undefined' : _typeof(resolvers)) !== 'object') return;
-			_razilobindCore.RaziloBindCoreDetector.customResolvers = resolvers;
-		}
-	}]);
+	RaziloBind.prototype.addBinders = function addBinders(binders) {
+		if (!binders || (typeof binders === 'undefined' ? 'undefined' : _typeof(binders)) !== 'object') return;
+		_razilobindCore.RaziloBindCoreDetector.customBinders = binders;
+	};
+
+	/**
+  * addResolvers()
+  * Add custom resolvers
+  *
+  * @param array resolvers An array of custom resolvers to inject into Detector
+  */
+
+
+	RaziloBind.prototype.addResolvers = function addResolvers(resolvers) {
+		if (!resolvers || (typeof resolvers === 'undefined' ? 'undefined' : _typeof(resolvers)) !== 'object') return;
+		_razilobindCore.RaziloBindCoreDetector.customResolvers = resolvers;
+	};
 
 	return RaziloBind;
 }(_razilobindCore.RaziloBindCore);
 
 exports.default = RaziloBind;
 
-},{"razilobind-alterer":3,"razilobind-binder":14,"razilobind-core":36,"razilobind-resolver":42}],53:[function(require,module,exports){
-'use strict';
-
-require('../../webcomponentsjs/lite.js');
-
-require('../../proxy-oo-polyfill/proxy-oo-polyfill.js');
-
-require('../../promise-polyfill/promise.js');
-
-var _razilocomponent = require('razilocomponent');
-
-var _razilocomponent2 = _interopRequireDefault(_razilocomponent);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-// razilo modules are all ES6 modules so make them available on global
-window.RaziloComponent = _razilocomponent2.default;
-
-},{"../../promise-polyfill/promise.js":1,"../../proxy-oo-polyfill/proxy-oo-polyfill.js":2,"../../webcomponentsjs/lite.js":56,"razilocomponent":54}],54:[function(require,module,exports){
-'use strict';
-
-exports.__esModule = true;
-
-var _core = require('./src/core.js');
-
-var _core2 = _interopRequireDefault(_core);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-// import ObjectAssign from 'object-assign'
-
-var RaziloComponent = function () {
-	function RaziloComponent(name, extbp, bp) {
-		_classCallCheck(this, RaziloComponent);
-
-		var isString = typeof extbp === 'string';
-		this.register(name, isString ? extbp : null, isString ? bp : extbp, document._currentScript.ownerDocument);
-	}
-
-	/**
-  * Register New Component
-  */
-
-
-	RaziloComponent.prototype.register = function register(name, ext, bp, component) {
-		for (var key in bp) {
-			this[key] = bp[key];
-		}return _core2.default.registerElement(this, name, ext, component);
-	};
-
-	/**
-  * Fires an event off from the components element
-  * @param string name The name of the event
-  * @param mixed detail [optional] Any optional details you wish to send
-  */
-	// fireEvent(name, detail) return function )
-
-	/**
-  * Get the current working root element (the host) (generated on bind to preserve element)
-  */
-	// getHost() { returns host }
-
-	/**
-  * Clone object without reference
-  */
-	// cloneObject() { returns host }
-
-	/**
-  * Custom element created, but not currently on dom
-  */
-	// OPTIONAL created() { }
-
-	/**
-  * Custom element attached to dom
-  */
-	// OPTIONAL attached() { }
-
-	/**
-  * Custom element detached from dom
-  */
-	// OPTIONAL detached() { }
-
-	/**
-  * Custom element atttibute has changed somehow
-  * @param string name The name of the attribute added, removed or changed
-  * @param string oldVal The old value of the attribute.
-  * @param string newVal The new value of the attribute.
-  */
-	// OPTIONAL attributeChanged(name, oldVal, newVal) { }
-
-
-	return RaziloComponent;
-}();
-
-exports.default = RaziloComponent;
-
-},{"./src/core.js":55}],55:[function(require,module,exports){
-'use strict';
-
-exports.__esModule = true;
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-var _razilobind = require('razilobind');
-
-var _razilobind2 = _interopRequireDefault(_razilobind);
-
-var _razilobindCore = require('razilobind-core');
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-/**
- * RaziloComponent Web Component Builder Library
- * Offers simple cross browser web components to be written in ES6
- */
-
-var Core = function () {
-	function Core() {
-		_classCallCheck(this, Core);
-	}
-
-	/**
-  * [public] - Register a new custom element, creating a naff working scope for the interface
-  * @param object blueprint The custom element blueprint to create the custom element from
-  */
-
-	Core.registerElement = function registerElement(bp, name, ext, component) {
-		if (!name) throw 'Cannot register custom element without a custom element name via register(name, extends) or new CustomElement({name: ..., extends: ...})';
-
-		// create proto
-		var proto = Object.create(HTMLElement.prototype);
-
-		// forward callbacks, all these happen as a per instance of component basis, outside of these things are per component registration
-		proto.createdCallback = function () {
-			Core.createTemplate(this, name, Core.cloneObject(bp), component); // create only
-			this.razilobind.model.getHost = Core.getThis.bind(this); // get the element scope
-			this.razilobind.model.cloneObject = Core.cloneObject; // get the element scope
-			this.razilobind.model.fireEvent = Core.fire.bind(this); // setup fireEvent on host
-			this.razilobind.model.dateFormat = _razilobindCore.RaziloBindDateFormat.dateFormat; // setup fireEvent on host
-			if (typeof this.razilobind.model.created === 'function') this.razilobind.model.created.call(this.razilobind.model);
-		};
-
-		proto.attachedCallback = function () {
-			Core.applyTemplate(this); // apply once all have been created, IMPORTANT!
-			if (typeof this.razilobind.model.attached === 'function') this.razilobind.model.attached.call(this.razilobind.model);
-		};
-
-		proto.detachedCallback = function () {
-			if (typeof this.razilobind.model.detached === 'function') this.razilobind.model.detached.call(this.razilobind.model);
-		};
-
-		proto.attributeChangedCallback = function (att, oldVal, newVal) {
-			if (typeof this.razilobind.model.attributeChanged === 'function') this.razilobind.model.attributeChanged.call(this.razilobind.model, att, oldVal, newVal);
-			Core.fire('attributechanged', { attribute: att, oldVal: oldVal, newVal: newVal }, this);
-		};
-
-		// register custom element
-		var protoWrap = { prototype: proto };
-		if (!!ext) protoWrap.extends = ext;
-		document.registerElement(name, protoWrap);
-	};
-
-	Core.getThis = function getThis() {
-		return this;
-	};
-
-	/**
-  * [public] - Fires an event off, from the provided element, or from scope if element not set
-  * @param HTML obejct element The element to fire from
-  * @param string name The name of the event
-  * @param mixed detail [optional] Any optional details you wish to send
-  */
-
-
-	Core.fire = function fire(name, detail, element) {
-		element = typeof element === 'undefined' ? this : element.host ? element.host : element;
-
-		var event;
-		try {
-			event = !detail ? new Event(name) : new CustomEvent(name, { 'detail': detail });
-		} catch (e) {
-			// allback to create event old fashioned way
-			event = document.createEvent('customEvent');
-			if (detail) event.detail = detail;
-			event.initEvent(name, true, true);
-		}
-
-		try {
-			element.dispatchEvent(event);
-		} catch (e) {
-			console.log('MAX CALL STACK ERROR', e);
-			console.log(element, event);
-		}
-	};
-
-	/**
-  * [public] - Clone an objects properties and methods
-  * @param object The object to clone
-  * @return object The cloned object (not a reference to an object)
-  */
-
-
-	Core.cloneObject = function cloneObject(obj) {
-		if ((typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) !== "object" || obj === null) return obj;
-
-		var clone;
-
-		if (obj instanceof Date) {
-			clone = new Date();
-			clone.setTime(obj.getTime());
-			return clone;
-		}
-
-		if (obj instanceof Array) {
-			clone = [];
-			for (var i = 0, len = obj.length; i < len; i++) {
-				clone[i] = Core.cloneObject(obj[i]);
-			}return clone;
-		}
-
-		// Handle Object
-		if (obj instanceof Object) {
-			clone = {};
-			for (var att in obj) {
-				if (obj.hasOwnProperty(att)) clone[att] = Core.cloneObject(obj[att]);
-			}return clone;
-		}
-
-		throw new Error("Unable to clone object " + obj + ",  this object type is not supported in component blueprints.");
-	};
-
-	/**
-  * [private] - Apply a template to a fragment and apply binding to the framnet component, store this against the host element
-  * This will allow us to bind away without the worry of where scope lies, as all component binding happens in isolation.
-  * once all binding complete, we can move content around into it's correct place.
-  * @param html object host The custom element to apply the template to
-  * @param object model The model data to apply to the host
-  * @param object component The web component template to use as the template for building the html element
-  */
-
-
-	Core.createTemplate = function createTemplate(host, name, model, component) {
-		if (!host) throw 'Host custom element not specified, please add custom element reference or lookup';
-
-		var template = component.querySelector('template#' + name);
-		if (!template) return host.razilobind = { model: model };
-
-		// bind to component fragment then move into host html after all binds complete
-		var rb = new _razilobind2.default({ noParentBind: true });
-		host.componentFragment = document.createDocumentFragment();
-		host.componentFragment.appendChild(document.createElement('COMPONENT'));
-		host.componentFragment.firstChild.innerHTML = template.innerHTML;
-		rb.bind(host.componentFragment.firstChild, model);
-
-		// move bind data from componentFragment to host ready for applying template, leave this until all binds completed (stops duplicate bindings)
-		host.razilobind = host.componentFragment.firstChild.razilobind;
-		delete host.componentFragment.firstChild.razilobind;
-	};
-
-	/**
-  * [private] - Apply built component to the host element. Takes a fragment component and merges it into the host html, mixing any content from the host into the component fragment first.
-  * @param mixed host The custom element to apply the template to, usually 'this' but can be selector string
-  */
-
-
-	Core.applyTemplate = function applyTemplate(host) {
-		if (!host.componentFragment) return;
-
-		// do we need to apply any host content?... pull into fragment
-		var matches = host.componentFragment.firstChild.querySelectorAll('content');
-		if (matches.length > 0) {
-			for (var i = 0; i < matches.length; i++) {
-				if (matches[i].hasAttribute('select')) {
-					// substitute fragment content placeholders with selected host content
-					var name = matches[i].getAttribute('select');
-					var found = host.querySelector(name);
-					if (found) matches[i].parentNode.replaceChild(found, matches[i]);
-				} else {
-					// move all host content to fragment placeholder and remove placeholder
-					while (host.firstChild) {
-						matches[i].parentNode.appendChild(host.firstChild);
-					}matches[i].parentNode.removeChild(matches[i]);
-				}
-			}
-		}
-
-		// transfer over the fragment to the host and remove
-		host.innerHTML = '';
-		while (host.componentFragment.firstChild.firstChild) {
-			host.appendChild(host.componentFragment.firstChild.firstChild);
-		}delete host.componentFragment;
-	};
-
-	return Core;
-}();
-
-exports.default = Core;
-
-},{"razilobind":52,"razilobind-core":36}],56:[function(require,module,exports){
+},{"razilobind-alterer":5,"razilobind-binder":16,"razilobind-core":38,"razilobind-resolver":44}],55:[function(require,module,exports){
 'use strict';
 
 /**
@@ -5842,7 +5564,7 @@ exports.default = Core;
  * Code distributed by Google as part of the polymer project is also
  * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
  */
-// @version 0.7.21
+// @version 0.7.22
 (function () {
   window.WebComponents = window.WebComponents || {
     flags: {}
@@ -6757,14 +6479,29 @@ if (typeof WeakMap === "undefined") {
 
 (function () {
   var needsTemplate = typeof HTMLTemplateElement === "undefined";
+  if (/Trident/.test(navigator.userAgent)) {
+    (function () {
+      var importNode = document.importNode;
+      document.importNode = function () {
+        var n = importNode.apply(document, arguments);
+        if (n.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+          var f = document.createDocumentFragment();
+          f.appendChild(n);
+          return f;
+        } else {
+          return n;
+        }
+      };
+    })();
+  }
   var needsCloning = function () {
     if (!needsTemplate) {
-      var frag = document.createDocumentFragment();
       var t = document.createElement("template");
-      frag.appendChild(t);
-      t.content.appendChild(document.createElement("div"));
-      var clone = frag.cloneNode(true);
-      return clone.firstChild.content.childNodes.length === 0;
+      var t2 = document.createElement("template");
+      t2.content.appendChild(document.createElement("div"));
+      t.content.appendChild(t2);
+      var clone = t.cloneNode(true);
+      return clone.content.childNodes.length === 0 || clone.content.firstChild.content.childNodes.length === 0;
     }
   }();
   var TEMPLATE_TAG = "template";
@@ -6816,6 +6553,9 @@ if (typeof WeakMap === "undefined") {
         while (child = template.firstChild) {
           template.content.appendChild(child);
         }
+        template.cloneNode = function (deep) {
+          return TemplateImpl.cloneNode(this, deep);
+        };
         if (canDecorate) {
           try {
             Object.defineProperty(template, "innerHTML", {
@@ -6838,9 +6578,6 @@ if (typeof WeakMap === "undefined") {
               },
               configurable: true
             });
-            template.cloneNode = function (deep) {
-              return TemplateImpl.cloneNode(this, deep);
-            };
           } catch (err) {
             canDecorate = false;
           }
@@ -6862,7 +6599,7 @@ if (typeof WeakMap === "undefined") {
         "use strict";
 
         var el = createElement.apply(document, arguments);
-        if (el.localName == "template") {
+        if (el.localName === "template") {
           TemplateImpl.decorate(el);
         }
         return el;
@@ -6873,7 +6610,7 @@ if (typeof WeakMap === "undefined") {
   if (needsTemplate || needsCloning) {
     var nativeCloneNode = Node.prototype.cloneNode;
     TemplateImpl.cloneNode = function (template, deep) {
-      var clone = nativeCloneNode.call(template);
+      var clone = nativeCloneNode.call(template, false);
       if (this.decorate) {
         this.decorate(clone);
       }
@@ -8100,6 +7837,9 @@ window.CustomElements.addModule(function (scope) {
       definition.prototype = Object.create(HTMLElement.prototype);
     }
     definition.__name = name.toLowerCase();
+    if (definition.extends) {
+      definition.extends = definition.extends.toLowerCase();
+    }
     definition.lifecycle = definition.lifecycle || {};
     definition.ancestry = ancestry(definition.extends);
     resolveTagName(definition);
@@ -8273,21 +8013,6 @@ window.CustomElements.addModule(function (scope) {
   }
   wrapDomMethodToForceUpgrade(Node.prototype, "cloneNode");
   wrapDomMethodToForceUpgrade(document, "importNode");
-  if (isIE) {
-    (function () {
-      var importNode = document.importNode;
-      document.importNode = function () {
-        var n = importNode.apply(document, arguments);
-        if (n.nodeType == n.DOCUMENT_FRAGMENT_NODE) {
-          var f = document.createDocumentFragment();
-          f.appendChild(n);
-          return f;
-        } else {
-          return n;
-        }
-      };
-    })();
-  }
   document.registerElement = register;
   document.createElement = createElement;
   document.createElementNS = createElementNS;
@@ -8370,4 +8095,206 @@ window.CustomElements.addModule(function (scope) {
   head.insertBefore(style, head.firstChild);
 })(window.WebComponents);
 
-},{}]},{},[53])
+},{}],56:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+var _razilobind = require('razilobind');
+
+var _razilobind2 = _interopRequireDefault(_razilobind);
+
+var _razilobindCore = require('razilobind-core');
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+/**
+ * RaziloComponent Web Component Builder Library
+ * Offers simple cross browser web components to be written in ES6
+ */
+var Core = function () {
+	function Core() {
+		_classCallCheck(this, Core);
+	}
+
+	/**
+  * [public] - Register a new custom element, creating a naff working scope for the interface
+  * @param object blueprint The custom element blueprint to create the custom element from
+  */
+	Core.registerElement = function registerElement(bp, name, ext, component) {
+		if (!name) throw 'Cannot register custom element without a custom element name via register(name, extends) or new CustomElement({name: ..., extends: ...})';
+
+		// create proto
+		var proto = Object.create(HTMLElement.prototype);
+
+		// forward callbacks, all these happen as a per instance of component basis, outside of these things are per component registration
+		proto.createdCallback = function () {
+			Core.createTemplate(this, name, Core.cloneObject(bp), component); // create only
+			this.razilobind.model.getHost = Core.getThis.bind(this); // get the element scope
+			this.razilobind.model.cloneObject = Core.cloneObject; // get the element scope
+			this.razilobind.model.fireEvent = Core.fire.bind(this); // setup fireEvent on host
+			this.razilobind.model.dateFormat = _razilobindCore.RaziloBindDateFormat.dateFormat; // setup fireEvent on host
+			if (typeof this.razilobind.model.created === 'function') this.razilobind.model.created.call(this.razilobind.model);
+		};
+
+		proto.attachedCallback = function () {
+			Core.applyTemplate(this); // apply once all have been created, IMPORTANT!
+			if (typeof this.razilobind.model.attached === 'function') this.razilobind.model.attached.call(this.razilobind.model);
+		};
+
+		proto.detachedCallback = function () {
+			if (typeof this.razilobind.model.detached === 'function') this.razilobind.model.detached.call(this.razilobind.model);
+		};
+
+		proto.attributeChangedCallback = function (att, oldVal, newVal) {
+			if (typeof this.razilobind.model.attributeChanged === 'function') this.razilobind.model.attributeChanged.call(this.razilobind.model, att, oldVal, newVal);
+			Core.fire('attributechanged', { attribute: att, oldVal: oldVal, newVal: newVal }, this);
+		};
+
+		// register custom element
+		var protoWrap = { prototype: proto };
+		if (!!ext) protoWrap.extends = ext;
+		document.registerElement(name, protoWrap);
+	};
+
+	Core.getThis = function getThis() {
+		return this;
+	};
+
+	/**
+  * [public] - Fires an event off, from the provided element, or from scope if element not set
+  * @param HTML obejct element The element to fire from
+  * @param string name The name of the event
+  * @param mixed detail [optional] Any optional details you wish to send
+  */
+
+
+	Core.fire = function fire(name, detail, element) {
+		element = typeof element === 'undefined' ? this : element.host ? element.host : element;
+
+		var event;
+		try {
+			event = !detail ? new Event(name) : new CustomEvent(name, { 'detail': detail });
+		} catch (e) {
+			// allback to create event old fashioned way
+			event = document.createEvent('customEvent');
+			if (detail) event.detail = detail;
+			event.initEvent(name, true, true);
+		}
+
+		try {
+			element.dispatchEvent(event);
+		} catch (e) {
+			console.log('MAX CALL STACK ERROR', e);
+			console.log(element, event);
+		}
+	};
+
+	/**
+  * [public] - Clone an objects properties and methods
+  * @param object The object to clone
+  * @return object The cloned object (not a reference to an object)
+  */
+
+
+	Core.cloneObject = function cloneObject(obj) {
+		if ((typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) !== "object" || obj === null) return obj;
+
+		var clone;
+
+		if (obj instanceof Date) {
+			clone = new Date();
+			clone.setTime(obj.getTime());
+			return clone;
+		}
+
+		if (obj instanceof Array) {
+			clone = [];
+			for (var i = 0, len = obj.length; i < len; i++) {
+				clone[i] = Core.cloneObject(obj[i]);
+			}return clone;
+		}
+
+		// Handle Object
+		if (obj instanceof Object) {
+			clone = {};
+			for (var att in obj) {
+				if (obj.hasOwnProperty(att)) clone[att] = Core.cloneObject(obj[att]);
+			}return clone;
+		}
+
+		throw new Error("Unable to clone object " + obj + ",  this object type is not supported in component blueprints.");
+	};
+
+	/**
+  * [private] - Apply a template to a fragment and apply binding to the framnet component, store this against the host element
+  * This will allow us to bind away without the worry of where scope lies, as all component binding happens in isolation.
+  * once all binding complete, we can move content around into it's correct place.
+  * @param html object host The custom element to apply the template to
+  * @param object model The model data to apply to the host
+  * @param object component The web component template to use as the template for building the html element
+  */
+
+
+	Core.createTemplate = function createTemplate(host, name, model, component) {
+		if (!host) throw 'Host custom element not specified, please add custom element reference or lookup';
+
+		var template = component.querySelector('template#' + name);
+		if (!template) return host.razilobind = { model: model };
+
+		// bind to component fragment then move into host html after all binds complete
+		var rb = new _razilobind2.default({ noParentBind: true });
+		host.componentFragment = document.createDocumentFragment();
+		host.componentFragment.appendChild(document.createElement('COMPONENT'));
+		host.componentFragment.firstChild.innerHTML = template.innerHTML;
+		rb.bind(host.componentFragment.firstChild, model);
+
+		// move bind data from componentFragment to host ready for applying template, leave this until all binds completed (stops duplicate bindings)
+		host.razilobind = host.componentFragment.firstChild.razilobind;
+		delete host.componentFragment.firstChild.razilobind;
+	};
+
+	/**
+  * [private] - Apply built component to the host element. Takes a fragment component and merges it into the host html, mixing any content from the host into the component fragment first.
+  * @param mixed host The custom element to apply the template to, usually 'this' but can be selector string
+  */
+
+
+	Core.applyTemplate = function applyTemplate(host) {
+		if (!host.componentFragment) return;
+
+		// do we need to apply any host content?... pull into fragment
+		var matches = host.componentFragment.firstChild.querySelectorAll('content');
+		if (matches.length > 0) {
+			for (var i = 0; i < matches.length; i++) {
+				if (matches[i].hasAttribute('select')) {
+					// substitute fragment content placeholders with selected host content
+					var name = matches[i].getAttribute('select');
+					var found = host.querySelector(name);
+					if (found) matches[i].parentNode.replaceChild(found, matches[i]);
+				} else {
+					// move all host content to fragment placeholder and remove placeholder
+					while (host.firstChild) {
+						matches[i].parentNode.appendChild(host.firstChild);
+					}matches[i].parentNode.removeChild(matches[i]);
+				}
+			}
+		}
+
+		// transfer over the fragment to the host and remove
+		host.innerHTML = '';
+		while (host.componentFragment.firstChild.firstChild) {
+			host.appendChild(host.componentFragment.firstChild.firstChild);
+		}delete host.componentFragment;
+	};
+
+	return Core;
+}();
+
+exports.default = Core;
+
+},{"razilobind":54,"razilobind-core":38}]},{},[1])
