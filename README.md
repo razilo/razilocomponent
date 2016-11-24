@@ -14,13 +14,14 @@ Razilo Component is the spin off from Razilo Bind, a simple light html to js mod
 
 Well if you are like me, and lazy, you will not like doing things more than once. What we do here is take the default things we do with web apps, and put them into reusable blocks to allow us to add them easily. We then have an interface to them via attributes, properties and methods to use the functionality baked in. They will work nicely with things like jQuery, angular, basically any other tech that does not use shadow dom for encapsualtion (will brake style bleed in and require more work on your part). You can use just the built web components, or you can make your own, why not make your app the starting web component.
 
-The alternative? Well that would be a framework, the equivilent to this in a framework (frameworks give much much more than a library) would be polymer or x-tags. Or similar functionaly to web components can be created using things like angular (directives?), vue (compilable es6 components) and react (not sure what they are called here but you get the idea). So web components are not a new thing, but instead of creating some crazy method of generating re-usable modules, we do it in the generic javascript way (current and future native API's, polyfilled for older browsers).
+The alternative? Well that would be a framework, the equivilent to this in a framework (frameworks give much much more than a library) would be polymer or x-tags. Or similar functionaly to web components can be created using things like angular (directives?), angular 2 (complex and breaking revisions!), vue (compilable es6 components) and react (not sure what they are called here but you get the idea). So web components are not a new thing, but instead of creating some crazy method of generating re-usable modules, or some way overly complicated ecosystem, we do it in the generic javascript way (current and future native API's, polyfilled for older browsers).
 
+Simplicity is the key here folks, simple to install, simple to setup and simple to use. You get to choose to bundle your components or not, all compoentns are html imports that will use native browser caching anyway, should you choose to bundle these into a single file and negate the lazy loading benefits of using html imports, just vulcanize your components.
 
 ## Why Razilo Component?
 
 
-Well like we said, we do things in a way that is future compliant, you could create the components yourself, we just take care of some other stuff such as binding models to templates [https://github.com/smiffy6969/razilobind], injecting content from element into component, event handling that kind of thing. We also offer some gravy, things like dateFormat [https://github.com/felixge/node-dateformat]. So as you can see we do things in a generic way with as little dependancies as possible. The aim here is to depend on as little as possible with polyfills as much as we can (polyfills are the future, they are used les as browser catch up).
+Well like we said, we do things in a way that is future compliant, you could create the components yourself in native JS, we just take care of some other stuff such as binding models to templates [https://github.com/smiffy6969/razilobind], injecting content from element into component, event handling that kind of thing. We also offer some gravy, things like dateFormat [https://github.com/felixge/node-dateformat]. So as you can see we do things in a generic way with as little dependancies as possible. The aim here is to depend on as little as possible with polyfills as much as we can (polyfills are the future, they are used les as browser catch up).
 
 All components generated with Razilo Component can be parsed and read by current browsers (pretty much N-1 is tested), no compiling needed, unless you want to vulcanie your components into a single import, or import Razilo Component into your project in an ES6 way (yes we are ES6).
 
@@ -38,7 +39,7 @@ The quick simple approach is to npm install razilo component, which will pull in
 npm install razilocomponent
 ```
 
-Once installed, you can use the none ES6 files in your html head area (either compressed or non).
+Once installed, you can use the none ES5 bundle file in your html head area.
 
 index.html
 
@@ -49,7 +50,7 @@ index.html
 ## Other Ways
 
 
-Dont want to add this directly, maybe you have some app logic anyway, or want to build in other things. You can pull this in as an ES6 import too...
+Dont want to add this directly, maybe you have some app logic anyway, or want to build in other things. You can pull this in as an ES6 import into your project target file...
 
 
 From your logic ES6 file, import the tool and any dependencies,
@@ -63,11 +64,11 @@ import 'node_modules/proxy-oo-polyfill/proxy-oo-polyfill.js'
 import 'node_modules/promise-polyfill/promise.js'
 import RaziloComponent from 'razilocomponent'
 
-// razilo modules are all ES6 modules so make them available on global
+// razilo modules are all ES6 modules so make them available on global window
 window.RaziloComponent = RaziloComponent;
 ```
 
-This will pull in a few polyfills, fix any missing API's in older browsers and then import Razilo Component in, making it available globally to allow each web component to use the class to create new objects. If you are looking for a more complete solution, you can also find razilorequest and razilocookie to offer cookie maangement and request tools (with promises) to allow you to further your project with backend calls for data (slim3 is great for this!). Alternativel, pull in your own tools at this point to manage requests and other things.
+This will pull in a few polyfills, fix any missing API's in older browsers and then import Razilo Component in, making it available globally to allow each web component to use the class to create new objects. If you are looking for a more complete solution, you can also find razilorequest and razilocookie to offer cookie maangement and request tools (with promises) to allow you to further your project with backend calls for data (slim3 is great for this!). Alternatively, pull in your own tools at this point to manage requests and other things.
 
 
 Now you will need to compile with browserify or similar, the ES6 code in your app.js file into a distributable file, and add that to the head area of your index.html file as we did above.
@@ -192,9 +193,101 @@ You should now be able to use `<my-component></my-component>` now in your html f
 
 A little on importing. Here you notice an async attribute, this will speed up processing of the dom by deferring the import to an async task, pulling it out the normal flow. Good news for speed but will cause FOUC (Flash Of Unstyled Content) as the page takes the time to render it, thats a flash of rubbish looking html before it looks right. Newer browsers are stopping this from happening more and more, but an async will bring it right back. It's up to you, the more you use web components the more you will know when to and when not to async imports.
 
-Now all imports are cached, so its a good tool for dep management using native browser caching, due to this I tend to use un-vulcanized imports until such as time a project improves by vulcanization. Its a bit suck it and see people, why load tens of components in a single file when you only need one, and why do ten seperate requests one bundled file will do, find your tipping point. On a side note, razilo-partial custom element works well here pulling in partials and caching their deps, so hitting a page twice loads the deps once, check it out in razilo components.
+Now all imports are cached, so its a good tool for dep management using native browser caching, due to this I tend to use un-vulcanized imports until such as time a project improves by vulcanization. Its a bit suck it and see people, why load tens of components in a single file when you only need one, and why do ten seperate requests when one bundled file will do, find your tipping point. On a side note, razilo-partial custom element works well here pulling in partials and caching their deps, so hitting a page twice loads the deps once, check it out in razilo components, we use it for pulling in partial html fragments to use as a page type system for apps.
 
-I recommend testing with non vulcanised files first, if its acceptable, stick with it, organise your compoennts to use each other and depend on each other, then when you are ready to vulcanize, you can just hit the first import and it will pull in all it needs to creating a single file.
+I recommend testing with non vulcanised files first, if its acceptable, stick with it, organise your compoennts to use each other and depend on each other, then when you are ready to vulcanize, you can just hit the first import and it will pull in all it needs to creating a single file which you can then pull in your index.html file, but like i say, its a toss up here between loading too much or lazy loading over and over, find your tipping point.
+
+One last thing, you notice we only every imported one html component into our index file, thats right, we have an entry point to our app, the main component app that is treated just like any other component, from here on all your custom component html imports are all done in  the deps area of components.
+
+# Services
+
+
+Well you have two options here, you can either write an ES6 service, compile it into a bootstrap file, include it in your index.html file and your good to use it anywhere in the system. I'm not going to go into this detail really as it is purely down to user preference, ES6 and compile it in, inject it in as a dependency in a component, compile your own razilo files via ES6 imports and add them to this list, there are lots of options for you.
+
+Another way to create a service, one I quite like, is to create a component as a service worker. Simple enough, create yourself a component, remove the template, set the element to display none, then map component methods to the element api as follows.
+
+
+```html
+<!--
+* my-service - Component service worker
+* @author Your Name
+* @site your.site.com
+* @licence MIT
+-->
+
+<!-- STYLE - Encapsulate all css to tag name -->
+<style>
+	my-service { display: none !important; }
+</style>
+
+<!-- LOGIC -->
+<script>
+	new RaziloComponent('my-service', {
+		created: function()
+		{
+			// Map component commands you want to be available to element api
+			this.getHost().getItem = this.getItem.bind(this);
+			this.getHost().setItem = this.setItem.bind(this);
+			this.getHost().deleteItem = this.deleteItem.bind(this);
+		},
+
+		getItem: function(key)
+		{
+			// Do something here...
+			// 'this' will return the component instance due to '.bind(this)' above
+			console.log('getItem()', this, key);
+		},
+
+		setItem: function(key, value)
+		{
+			// Do something here...
+			// 'this' will return the component instance due to '.bind(this)' above
+			console.log('setItem()', this, key, value);
+		},
+
+		deleteItem: function(key)
+		{
+			// Do something here...
+			// 'this' will return the component instance due to '.bind(this)' above
+			console.log('deleteItem()', this, key);
+		},
+
+		other: function(something)
+		{
+			// not mapped through!
+		}
+	});
+</script>
+```
+
+All you need to do now is html import the component into your app as normal, then add the element to your application either at component application root, or in another component.
+
+
+```html
+<my-service></my-service>
+```
+
+You will now be able to access this service as follows...
+
+
+```js
+var service = document.querySelector('my-service');
+service.getItem('one');
+service.setItem('one', 'this is one');
+service.deleteItem('one');
+```
+
+Add to your application as just an element for site wide single instance service, or give it an id to create more than one instance...
+
+
+```js
+var service1 = document.querySelector('my-service#first');
+var service2 = document.querySelector('my-service#second');
+service1.getItem('one');
+service2.getItem('two');
+```
+
+This can be a great alternative to pure JS services, and also will allow you to do things like add attribtues to the component service worker to take in setup parameters, default values etc.
 
 
 # Creating an Application

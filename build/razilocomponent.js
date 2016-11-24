@@ -8158,7 +8158,11 @@ var Core = function () {
 		// register custom element
 		var protoWrap = { prototype: proto };
 		if (!!ext) protoWrap.extends = ext;
-		document.registerElement(name, protoWrap);
+		try {
+			document.registerElement(name, protoWrap);
+		} catch (e) {
+			console.log('Notice: skipping "' + name + '", already registered as a custom component.');
+		}
 	};
 
 	Core.getThis = function getThis() {
