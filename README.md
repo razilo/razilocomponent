@@ -39,11 +39,15 @@ The quick simple approach is to npm install razilo component, which will pull in
 npm install razilocomponent
 ```
 
-Once installed, you can use the none ES5 bundle file in your html head area.
+Once installed, you can use the none ES5 bundle file in your html head area. Dont forget to include the poyfills for browsers that are not yet up to date
 
 index.html
 
 ```html
+<script type="text/javascript" src="/node_modules/webcomponents.js/webcomponents-lite.js"></script>
+<script type="text/javascript" src="/node_modules/proxy-oo-polyfill/proxy-oo-polyfill.js"></script>
+<script type="text/javascript" src="/node_modules/promise-polyfill/promise.js"></script>
+
 <script type="text/javascript" src="/node_modules/razilocomponent/build/razilocomponent.min.js"></script>
 ```
 

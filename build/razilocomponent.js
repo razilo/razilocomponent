@@ -1,1265 +1,16 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);throw new Error("Cannot find module '"+o+"'")}var f=n[o]={exports:{}};t[o][0].call(f.exports,function(e){var n=t[o][1][e];return s(n?n:e)},f,f.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 'use strict';
 
-require('../node_modules/webcomponents.js/webcomponents-lite.js');
+var _razilocomponent = require('razilocomponent');
 
-require('../node_modules/proxy-oo-polyfill/proxy-oo-polyfill.js');
-
-require('../node_modules/promise-polyfill/promise.js');
-
-var _index = require('../index.js');
-
-var _index2 = _interopRequireDefault(_index);
+var _razilocomponent2 = _interopRequireDefault(_razilocomponent);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // razilo modules are all ES6 modules so make them available on global
-window.RaziloComponent = _index2.default;
+window.RaziloComponent = _razilocomponent2.default;
 
-},{"../index.js":2,"../node_modules/promise-polyfill/promise.js":3,"../node_modules/proxy-oo-polyfill/proxy-oo-polyfill.js":4,"../node_modules/webcomponents.js/webcomponents-lite.js":55}],2:[function(require,module,exports){
-'use strict';
-
-exports.__esModule = true;
-
-var _core = require('./src/core.js');
-
-var _core2 = _interopRequireDefault(_core);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-// import ObjectAssign from 'object-assign'
-
-var RaziloComponent = function () {
-	function RaziloComponent(name, extbp, bp) {
-		_classCallCheck(this, RaziloComponent);
-
-		var isString = typeof extbp === 'string';
-		this.register(name, isString ? extbp : null, isString ? bp : extbp, document._currentScript.ownerDocument);
-	}
-
-	/**
-  * Register New Component
-  */
-
-
-	RaziloComponent.prototype.register = function register(name, ext, bp, component) {
-		for (var key in bp) {
-			this[key] = bp[key];
-		}return _core2.default.registerElement(this, name, ext, component);
-	};
-
-	/**
-  * Fires an event off from the components element
-  * @param string name The name of the event
-  * @param mixed detail [optional] Any optional details you wish to send
-  */
-	// fireEvent(name, detail) return function )
-
-	/**
-  * Get the current working root element (the host) (generated on bind to preserve element)
-  */
-	// getHost() { returns host }
-
-	/**
-  * Clone object without reference
-  */
-	// cloneObject() { returns host }
-
-	/**
-  * Custom element created, but not currently on dom
-  */
-	// OPTIONAL created() { }
-
-	/**
-  * Custom element attached to dom
-  */
-	// OPTIONAL attached() { }
-
-	/**
-  * Custom element detached from dom
-  */
-	// OPTIONAL detached() { }
-
-	/**
-  * Custom element atttibute has changed somehow
-  * @param string name The name of the attribute added, removed or changed
-  * @param string oldVal The old value of the attribute.
-  * @param string newVal The new value of the attribute.
-  */
-	// OPTIONAL attributeChanged(name, oldVal, newVal) { }
-
-
-	return RaziloComponent;
-}();
-
-exports.default = RaziloComponent;
-
-},{"./src/core.js":56}],3:[function(require,module,exports){
-'use strict';
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-(function (root) {
-
-  // Store setTimeout reference so promise-polyfill will be unaffected by
-  // other code modifying setTimeout (like sinon.useFakeTimers())
-  var setTimeoutFunc = setTimeout;
-
-  function noop() {}
-
-  // Polyfill for Function.prototype.bind
-  function bind(fn, thisArg) {
-    return function () {
-      fn.apply(thisArg, arguments);
-    };
-  }
-
-  function Promise(fn) {
-    if (_typeof(this) !== 'object') throw new TypeError('Promises must be constructed via new');
-    if (typeof fn !== 'function') throw new TypeError('not a function');
-    this._state = 0;
-    this._handled = false;
-    this._value = undefined;
-    this._deferreds = [];
-
-    doResolve(fn, this);
-  }
-
-  function handle(self, deferred) {
-    while (self._state === 3) {
-      self = self._value;
-    }
-    if (self._state === 0) {
-      self._deferreds.push(deferred);
-      return;
-    }
-    self._handled = true;
-    Promise._immediateFn(function () {
-      var cb = self._state === 1 ? deferred.onFulfilled : deferred.onRejected;
-      if (cb === null) {
-        (self._state === 1 ? resolve : reject)(deferred.promise, self._value);
-        return;
-      }
-      var ret;
-      try {
-        ret = cb(self._value);
-      } catch (e) {
-        reject(deferred.promise, e);
-        return;
-      }
-      resolve(deferred.promise, ret);
-    });
-  }
-
-  function resolve(self, newValue) {
-    try {
-      // Promise Resolution Procedure: https://github.com/promises-aplus/promises-spec#the-promise-resolution-procedure
-      if (newValue === self) throw new TypeError('A promise cannot be resolved with itself.');
-      if (newValue && ((typeof newValue === 'undefined' ? 'undefined' : _typeof(newValue)) === 'object' || typeof newValue === 'function')) {
-        var then = newValue.then;
-        if (newValue instanceof Promise) {
-          self._state = 3;
-          self._value = newValue;
-          finale(self);
-          return;
-        } else if (typeof then === 'function') {
-          doResolve(bind(then, newValue), self);
-          return;
-        }
-      }
-      self._state = 1;
-      self._value = newValue;
-      finale(self);
-    } catch (e) {
-      reject(self, e);
-    }
-  }
-
-  function reject(self, newValue) {
-    self._state = 2;
-    self._value = newValue;
-    finale(self);
-  }
-
-  function finale(self) {
-    if (self._state === 2 && self._deferreds.length === 0) {
-      Promise._immediateFn(function () {
-        if (!self._handled) {
-          Promise._unhandledRejectionFn(self._value);
-        }
-      });
-    }
-
-    for (var i = 0, len = self._deferreds.length; i < len; i++) {
-      handle(self, self._deferreds[i]);
-    }
-    self._deferreds = null;
-  }
-
-  function Handler(onFulfilled, onRejected, promise) {
-    this.onFulfilled = typeof onFulfilled === 'function' ? onFulfilled : null;
-    this.onRejected = typeof onRejected === 'function' ? onRejected : null;
-    this.promise = promise;
-  }
-
-  /**
-   * Take a potentially misbehaving resolver function and make sure
-   * onFulfilled and onRejected are only called once.
-   *
-   * Makes no guarantees about asynchrony.
-   */
-  function doResolve(fn, self) {
-    var done = false;
-    try {
-      fn(function (value) {
-        if (done) return;
-        done = true;
-        resolve(self, value);
-      }, function (reason) {
-        if (done) return;
-        done = true;
-        reject(self, reason);
-      });
-    } catch (ex) {
-      if (done) return;
-      done = true;
-      reject(self, ex);
-    }
-  }
-
-  Promise.prototype['catch'] = function (onRejected) {
-    return this.then(null, onRejected);
-  };
-
-  Promise.prototype.then = function (onFulfilled, onRejected) {
-    var prom = new this.constructor(noop);
-
-    handle(this, new Handler(onFulfilled, onRejected, prom));
-    return prom;
-  };
-
-  Promise.all = function (arr) {
-    var args = Array.prototype.slice.call(arr);
-
-    return new Promise(function (resolve, reject) {
-      if (args.length === 0) return resolve([]);
-      var remaining = args.length;
-
-      function res(i, val) {
-        try {
-          if (val && ((typeof val === 'undefined' ? 'undefined' : _typeof(val)) === 'object' || typeof val === 'function')) {
-            var then = val.then;
-            if (typeof then === 'function') {
-              then.call(val, function (val) {
-                res(i, val);
-              }, reject);
-              return;
-            }
-          }
-          args[i] = val;
-          if (--remaining === 0) {
-            resolve(args);
-          }
-        } catch (ex) {
-          reject(ex);
-        }
-      }
-
-      for (var i = 0; i < args.length; i++) {
-        res(i, args[i]);
-      }
-    });
-  };
-
-  Promise.resolve = function (value) {
-    if (value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object' && value.constructor === Promise) {
-      return value;
-    }
-
-    return new Promise(function (resolve) {
-      resolve(value);
-    });
-  };
-
-  Promise.reject = function (value) {
-    return new Promise(function (resolve, reject) {
-      reject(value);
-    });
-  };
-
-  Promise.race = function (values) {
-    return new Promise(function (resolve, reject) {
-      for (var i = 0, len = values.length; i < len; i++) {
-        values[i].then(resolve, reject);
-      }
-    });
-  };
-
-  // Use polyfill for setImmediate for performance gains
-  Promise._immediateFn = typeof setImmediate === 'function' && function (fn) {
-    setImmediate(fn);
-  } || function (fn) {
-    setTimeoutFunc(fn, 0);
-  };
-
-  Promise._unhandledRejectionFn = function _unhandledRejectionFn(err) {
-    if (typeof console !== 'undefined' && console) {
-      console.warn('Possible Unhandled Promise Rejection:', err); // eslint-disable-line no-console
-    }
-  };
-
-  /**
-   * Set the immediate function to execute callbacks
-   * @param fn {function} Function to execute
-   * @deprecated
-   */
-  Promise._setImmediateFn = function _setImmediateFn(fn) {
-    Promise._immediateFn = fn;
-  };
-
-  /**
-   * Change the function to execute on unhandled rejection
-   * @param {function} fn Function to execute on unhandled rejection
-   * @deprecated
-   */
-  Promise._setUnhandledRejectionFn = function _setUnhandledRejectionFn(fn) {
-    Promise._unhandledRejectionFn = fn;
-  };
-
-  if (typeof module !== 'undefined' && module.exports) {
-    module.exports = Promise;
-  } else if (!root.Promise) {
-    root.Promise = Promise;
-  }
-})(undefined);
-
-},{}],4:[function(require,module,exports){
-/**
- * Proxy has been patched with support for Object.observe, which is now obsovare. This is done to allow OO to exist if native proxy does not.
- * The reason for this is due to limitations with proxy polyfill when it comes to arrays as it makes them immutable.
- * If Proxy.oo exists, you should switch to Proxy.oo when wanting to observe nested objects with arrays and still want to call a callback if the
- * array is used with push, splice, etc. Otherewise if Proxy.oo not present (we are native) and can use native engine to without issue
- */
-
-/*
- * Copyright 2016 Google Inc. All rights reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not
- * use this file except in compliance with the License. You may obtain a copy of
- * the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations under
- * the License.
- */
-
-'use strict';
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-(function (scope) {
-    if (scope['Proxy']) return;
-
-    var lastRevokeFn = null;
-
-    /**
-     * @param {*} o
-     * @return {boolean} whether this is probably a (non-null) Object
-     */
-    function isObject(o) {
-        return o ? (typeof o === 'undefined' ? 'undefined' : _typeof(o)) == 'object' || typeof o == 'function' : false;
-    }
-
-    /**
-     * @constructor
-     * @param {!Object} target
-     * @param {{apply, construct, get, set}} handler
-     */
-    scope.Proxy = function (target, handler) {
-        if (!isObject(target) || !isObject(handler)) {
-            throw new TypeError('Cannot create proxy with a non-object as target or handler');
-        }
-
-        // Construct revoke function, and set lastRevokeFn so that Proxy.revocable can steal it.
-        // The caller might get the wrong revoke function if a user replaces or wraps scope.Proxy
-        // to call itself, but that seems unlikely especially when using the polyfill.
-        var throwRevoked = function throwRevoked() {};
-        lastRevokeFn = function lastRevokeFn() {
-            throwRevoked = function throwRevoked(trap) {
-                throw new TypeError('Cannot perform ' + trap + ' on a proxy that has been revoked');
-            };
-        };
-
-        // Fail on unsupported traps: Chrome doesn't do this, but ensure that users of the polyfill
-        // are a bit more careful. Copy the internal parts of handler to prevent user changes.
-        var unsafeHandler = handler;
-        handler = { 'get': null, 'set': null, 'apply': null, 'construct': null };
-        for (var k in unsafeHandler) {
-            if (!(k in handler)) {
-                throw new TypeError('Proxy polyfill does not support trap ' + k);
-            }
-            handler[k] = unsafeHandler[k];
-        }
-        if (typeof unsafeHandler == 'function') {
-            // Allow handler to be a function (which has an 'apply' method). This matches what is
-            // probably a bug in native versions. It treats the apply call as a trap to be configured.
-            handler.apply = unsafeHandler.apply.bind(unsafeHandler);
-        }
-
-        // Define proxy as this, or a Function (if either it's callable, or apply is set).
-        // TODO(samthor): Closure compiler doesn't know about 'construct', attempts to rename it.
-        var proxy = this;
-        var isMethod = false;
-        var targetIsFunction = typeof target == 'function';
-        if (handler.apply || handler['construct'] || targetIsFunction) {
-            proxy = function Proxy() {
-                var usingNew = this && this.constructor === proxy;
-                throwRevoked(usingNew ? 'construct' : 'apply');
-
-                if (usingNew && handler['construct']) {
-                    return handler['construct'].call(this, target, arguments);
-                } else if (!usingNew && handler.apply) {
-                    return handler.apply(target, this, arguments);
-                } else if (targetIsFunction) {
-                    // since the target was a function, fallback to calling it directly.
-                    if (usingNew) {
-                        // inspired by answers to https://stackoverflow.com/q/1606797
-                        var all = Array.prototype.slice.call(arguments);
-                        all.unshift(target); // pass class as first arg to constructor, although irrelevant
-                        // nb. cast to convince Closure compiler that this is a constructor
-                        var f = /** @type {!Function} */target.bind.apply(target, all);
-                        return new f();
-                    }
-                    return target.apply(this, arguments);
-                }
-                throw new TypeError(usingNew ? 'not a constructor' : 'not a function');
-            };
-            isMethod = true;
-        }
-
-        // Create default getters/setters. Create different code paths as handler.get/handler.set can't
-        // change after creation.
-        var getter = handler.get ? function (prop) {
-            throwRevoked('get');
-            return handler.get(this, prop, proxy);
-        } : function (prop) {
-            throwRevoked('get');
-            return this[prop];
-        };
-        var setter = handler.set ? function (prop, value) {
-            throwRevoked('set');
-            var status = handler.set(this, prop, value, proxy);
-            if (!status) {
-                // TODO(samthor): If the calling code is in strict mode, throw TypeError.
-                // It's (sometimes) possible to work this out, if this code isn't strict- try to load the
-                // callee, and if it's available, that code is non-strict. However, this isn't exhaustive.
-            }
-        } : function (prop, value) {
-            throwRevoked('set');
-            this[prop] = value;
-        };
-
-        // Clone direct properties (i.e., not part of a prototype).
-        var propertyNames = Object.getOwnPropertyNames(target);
-        var propertyMap = {};
-        propertyNames.forEach(function (prop) {
-            if (isMethod && prop in proxy) {
-                return; // ignore properties already here, e.g. 'bind', 'prototype' etc
-            }
-            var real = Object.getOwnPropertyDescriptor(target, prop);
-            var desc = {
-                enumerable: !!real.enumerable,
-                get: getter.bind(target, prop),
-                set: setter.bind(target, prop)
-            };
-            Object.defineProperty(proxy, prop, desc);
-            propertyMap[prop] = true;
-        });
-
-        // Set the prototype, or clone all prototype methods (always required if a getter is provided).
-        // TODO(samthor): We don't allow prototype methods to be set. It's (even more) awkward.
-        // An alternative here would be to _just_ clone methods to keep behavior consistent.
-        var prototypeOk = true;
-        if (Object.setPrototypeOf) {
-            Object.setPrototypeOf(proxy, Object.getPrototypeOf(target));
-        } else if (proxy.__proto__) {
-            proxy.__proto__ = target.__proto__;
-        } else {
-            prototypeOk = false;
-        }
-        if (handler.get || !prototypeOk) {
-            for (var k in target) {
-                if (propertyMap[k]) {
-                    continue;
-                }
-                Object.defineProperty(proxy, k, { get: getter.bind(target, k) });
-            }
-        }
-
-        // The Proxy polyfill cannot handle adding new properties. Seal the target and proxy.
-        Object.seal(target);
-        Object.seal(proxy);
-
-        return proxy; // nb. if isMethod is true, proxy != this
-    };
-
-    scope.Proxy.revocable = function (target, handler) {
-        var p = new scope.Proxy(target, handler);
-        return { 'proxy': p, 'revoke': lastRevokeFn };
-    };
-
-    scope.Proxy['revocable'] = scope.Proxy.revocable;
-    scope.Proxy['oo'] = {};
-    scope['Proxy'] = scope.Proxy;
-})(window);
-
-/*!
- * Object.observe polyfill - v0.2.4
- * by Massimo Artizzu (MaxArt2501)
- *
- * https://github.com/MaxArt2501/object-observe
- *
- * Licensed under the MIT License
- * See LICENSE for details
- */
-
-// Some type definitions
-/**
- * This represents the data relative to an observed object
- * @typedef  {Object}                     ObjectData
- * @property {Map<Handler, HandlerData>}  handlers
- * @property {String[]}                   properties
- * @property {*[]}                        values
- * @property {Descriptor[]}               descriptors
- * @property {Notifier}                   notifier
- * @property {Boolean}                    frozen
- * @property {Boolean}                    extensible
- * @property {Object}                     proto
- */
-/**
- * Function definition of a handler
- * @callback Handler
- * @param {ChangeRecord[]}                changes
-*/
-/**
- * This represents the data relative to an observed object and one of its
- * handlers
- * @typedef  {Object}                     HandlerData
- * @property {Map<Object, ObservedData>}  observed
- * @property {ChangeRecord[]}             changeRecords
- */
-/**
- * @typedef  {Object}                     ObservedData
- * @property {String[]}                   acceptList
- * @property {ObjectData}                 data
-*/
-/**
- * Type definition for a change. Any other property can be added using
- * the notify() or performChange() methods of the notifier.
- * @typedef  {Object}                     ChangeRecord
- * @property {String}                     type
- * @property {Object}                     object
- * @property {String}                     [name]
- * @property {*}                          [oldValue]
- * @property {Number}                     [index]
- */
-/**
- * Type definition for a notifier (what Object.getNotifier returns)
- * @typedef  {Object}                     Notifier
- * @property {Function}                   notify
- * @property {Function}                   performChange
- */
-/**
- * Function called with Notifier.performChange. It may optionally return a
- * ChangeRecord that gets automatically notified, but `type` and `object`
- * properties are overridden.
- * @callback Performer
- * @returns {ChangeRecord|undefined}
- */
-(function (P, O, A, root, _undefined) {
-    // did we polyfill?
-    if (!P.oo) return;
-
-    /**
-     * Relates observed objects and their data
-     * @type {Map<Object, ObjectData}
-     */
-    var observed,
-
-    /**
-     * List of handlers and their data
-     * @type {Map<Handler, Map<Object, HandlerData>>}
-     */
-    handlers,
-        defaultAcceptList = ["add", "update", "delete", "reconfigure", "setPrototype", "preventExtensions"];
-
-    // Functions for internal usage
-
-    /**
-     * Checks if the argument is an Array object. Polyfills Array.isArray.
-     * @function isArray
-     * @param {?*} object
-     * @returns {Boolean}
-     */
-    var isArray = A.isArray || function (toString) {
-        return function (object) {
-            return toString.call(object) === "[object Array]";
-        };
-    }(O.prototype.toString),
-
-
-    /**
-     * Returns the index of an item in a collection, or -1 if not found.
-     * Uses the generic Array.indexOf or Array.prototype.indexOf if available.
-     * @function inArray
-     * @param {Array} array
-     * @param {*} pivot           Item to look for
-     * @param {Number} [start=0]  Index to start from
-     * @returns {Number}
-     */
-    inArray = A.prototype.indexOf ? A.indexOf || function (array, pivot, start) {
-        return A.prototype.indexOf.call(array, pivot, start);
-    } : function (array, pivot, start) {
-        for (var i = start || 0; i < array.length; i++) {
-            if (array[i] === pivot) return i;
-        }return -1;
-    },
-
-
-    /**
-     * Returns an instance of Map, or a Map-like object is Map is not
-     * supported or doesn't support forEach()
-     * @function createMap
-     * @returns {Map}
-     */
-    createMap = root.Map === _undefined || !Map.prototype.forEach ? function () {
-        // Lightweight shim of Map. Lacks clear(), entries(), keys() and
-        // values() (the last 3 not supported by IE11, so can't use them),
-        // it doesn't handle the constructor's argument (like IE11) and of
-        // course it doesn't support for...of.
-        // Chrome 31-35 and Firefox 13-24 have a basic support of Map, but
-        // they lack forEach(), so their native implementation is bad for
-        // this polyfill. (Chrome 36+ supports Object.observe.)
-        var keys = [],
-            values = [];
-
-        return {
-            size: 0,
-            has: function has(key) {
-                return inArray(keys, key) > -1;
-            },
-            get: function get(key) {
-                return values[inArray(keys, key)];
-            },
-            set: function set(key, value) {
-                var i = inArray(keys, key);
-                if (i === -1) {
-                    keys.push(key);
-                    values.push(value);
-                    this.size++;
-                } else values[i] = value;
-            },
-            "delete": function _delete(key) {
-                var i = inArray(keys, key);
-                if (i > -1) {
-                    keys.splice(i, 1);
-                    values.splice(i, 1);
-                    this.size--;
-                }
-            },
-            forEach: function forEach(callback /*, thisObj*/) {
-                for (var i = 0; i < keys.length; i++) {
-                    callback.call(arguments[1], values[i], keys[i], this);
-                }
-            }
-        };
-    } : function () {
-        return new Map();
-    },
-
-
-    /**
-     * Simple shim for Object.getOwnPropertyNames when is not available
-     * Misses checks on object, don't use as a replacement of Object.keys/getOwnPropertyNames
-     * @function getProps
-     * @param {Object} object
-     * @returns {String[]}
-     */
-    getProps = O.getOwnPropertyNames ? function () {
-        var func = O.getOwnPropertyNames;
-        try {
-            arguments.callee;
-        } catch (e) {
-            // Strict mode is supported
-
-            // In strict mode, we can't access to "arguments", "caller" and
-            // "callee" properties of functions. Object.getOwnPropertyNames
-            // returns [ "prototype", "length", "name" ] in Firefox; it returns
-            // "caller" and "arguments" too in Chrome and in Internet
-            // Explorer, so those values must be filtered.
-            var avoid = (func(inArray).join(" ") + " ").replace(/prototype |length |name /g, "").slice(0, -1).split(" ");
-            if (avoid.length) func = function func(object) {
-                var props = O.getOwnPropertyNames(object);
-                if (typeof object === "function") for (var i = 0, j; i < avoid.length;) {
-                    if ((j = inArray(props, avoid[i++])) > -1) props.splice(j, 1);
-                }return props;
-            };
-        }
-        return func;
-    }() : function (object) {
-        // Poor-mouth version with for...in (IE8-)
-        var props = [],
-            prop,
-            hop;
-        if ("hasOwnProperty" in object) {
-            for (prop in object) {
-                if (object.hasOwnProperty(prop)) props.push(prop);
-            }
-        } else {
-            hop = O.hasOwnProperty;
-            for (prop in object) {
-                if (hop.call(object, prop)) props.push(prop);
-            }
-        }
-
-        // Inserting a common non-enumerable property of arrays
-        if (isArray(object)) props.push("length");
-
-        return props;
-    },
-
-
-    /**
-     * Return the prototype of the object... if defined.
-     * @function getPrototype
-     * @param {Object} object
-     * @returns {Object}
-     */
-    getPrototype = O.getPrototypeOf,
-
-
-    /**
-     * Return the descriptor of the object... if defined.
-     * IE8 supports a (useless) Object.getOwnPropertyDescriptor for DOM
-     * nodes only, so defineProperties is checked instead.
-     * @function getDescriptor
-     * @param {Object} object
-     * @param {String} property
-     * @returns {Descriptor}
-     */
-    getDescriptor = O.defineProperties && O.getOwnPropertyDescriptor,
-
-
-    /**
-     * Sets up the next check and delivering iteration, using
-     * requestAnimationFrame or a (close) polyfill.
-     * @function nextFrame
-     * @param {function} func
-     * @returns {number}
-     */
-    nextFrame = root.requestAnimationFrame || root.webkitRequestAnimationFrame || function () {
-        var initial = +new Date(),
-            last = initial;
-        return function (func) {
-            return setTimeout(function () {
-                func((last = +new Date()) - initial);
-            }, 17);
-        };
-    }(),
-
-
-    /**
-     * Sets up the observation of an object
-     * @function doObserve
-     * @param {Object} object
-     * @param {Handler} handler
-     * @param {String[]} [acceptList]
-     */
-    doObserve = function doObserve(object, handler, acceptList) {
-        var data = observed.get(object);
-
-        if (data) {
-            performPropertyChecks(data, object);
-            setHandler(object, data, handler, acceptList);
-        } else {
-            data = createObjectData(object);
-            setHandler(object, data, handler, acceptList);
-
-            if (observed.size === 1)
-                // Let the observation begin!
-                nextFrame(runGlobalLoop);
-        }
-    },
-
-
-    /**
-     * Creates the initial data for an observed object
-     * @function createObjectData
-     * @param {Object} object
-     */
-    createObjectData = function createObjectData(object, data) {
-        var props = getProps(object),
-            values = [],
-            descs,
-            i = 0,
-            data = {
-            handlers: createMap(),
-            frozen: O.isFrozen ? O.isFrozen(object) : false,
-            extensible: O.isExtensible ? O.isExtensible(object) : true,
-            proto: getPrototype && getPrototype(object),
-            properties: props,
-            values: values,
-            notifier: retrieveNotifier(object, data)
-        };
-
-        if (getDescriptor) {
-            descs = data.descriptors = [];
-            while (i < props.length) {
-                descs[i] = getDescriptor(object, props[i]);
-                values[i] = object[props[i++]];
-            }
-        } else while (i < props.length) {
-            values[i] = object[props[i++]];
-        }observed.set(object, data);
-
-        return data;
-    },
-
-
-    /**
-     * Performs basic property value change checks on an observed object
-     * @function performPropertyChecks
-     * @param {ObjectData} data
-     * @param {Object} object
-     * @param {String} [except]  Doesn't deliver the changes to the
-     *                           handlers that accept this type
-     */
-    performPropertyChecks = function () {
-        var updateCheck = getDescriptor ? function (object, data, idx, except, descr) {
-            var key = data.properties[idx],
-                value = object[key],
-                ovalue = data.values[idx],
-                odesc = data.descriptors[idx];
-
-            if ("value" in descr && (ovalue === value ? ovalue === 0 && 1 / ovalue !== 1 / value : ovalue === ovalue || value === value)) {
-                addChangeRecord(object, data, {
-                    name: key,
-                    type: "update",
-                    object: object,
-                    oldValue: ovalue
-                }, except);
-                data.values[idx] = value;
-            }
-            if (odesc.configurable && (!descr.configurable || descr.writable !== odesc.writable || descr.enumerable !== odesc.enumerable || descr.get !== odesc.get || descr.set !== odesc.set)) {
-                addChangeRecord(object, data, {
-                    name: key,
-                    type: "reconfigure",
-                    object: object,
-                    oldValue: ovalue
-                }, except);
-                data.descriptors[idx] = descr;
-            }
-        } : function (object, data, idx, except) {
-            var key = data.properties[idx],
-                value = object[key],
-                ovalue = data.values[idx];
-
-            if (ovalue === value ? ovalue === 0 && 1 / ovalue !== 1 / value : ovalue === ovalue || value === value) {
-                addChangeRecord(object, data, {
-                    name: key,
-                    type: "update",
-                    object: object,
-                    oldValue: ovalue
-                }, except);
-                data.values[idx] = value;
-            }
-        };
-
-        // Checks if some property has been deleted
-        var deletionCheck = getDescriptor ? function (object, props, proplen, data, except) {
-            var i = props.length,
-                descr;
-            while (proplen && i--) {
-                if (props[i] !== null) {
-                    descr = getDescriptor(object, props[i]);
-                    proplen--;
-
-                    // If there's no descriptor, the property has really
-                    // been deleted; otherwise, it's been reconfigured so
-                    // that's not enumerable anymore
-                    if (descr) updateCheck(object, data, i, except, descr);else {
-                        addChangeRecord(object, data, {
-                            name: props[i],
-                            type: "delete",
-                            object: object,
-                            oldValue: data.values[i]
-                        }, except);
-                        data.properties.splice(i, 1);
-                        data.values.splice(i, 1);
-                        data.descriptors.splice(i, 1);
-                    }
-                }
-            }
-        } : function (object, props, proplen, data, except) {
-            var i = props.length;
-            while (proplen && i--) {
-                if (props[i] !== null) {
-                    addChangeRecord(object, data, {
-                        name: props[i],
-                        type: "delete",
-                        object: object,
-                        oldValue: data.values[i]
-                    }, except);
-                    data.properties.splice(i, 1);
-                    data.values.splice(i, 1);
-                    proplen--;
-                }
-            }
-        };
-
-        return function (data, object, except) {
-            if (!data.handlers.size || data.frozen) return;
-
-            var props,
-                proplen,
-                keys,
-                values = data.values,
-                descs = data.descriptors,
-                i = 0,
-                idx,
-                key,
-                value,
-                proto,
-                descr;
-
-            // If the object isn't extensible, we don't need to check for new
-            // or deleted properties
-            if (data.extensible) {
-
-                props = data.properties.slice();
-                proplen = props.length;
-                keys = getProps(object);
-
-                if (descs) {
-                    while (i < keys.length) {
-                        key = keys[i++];
-                        idx = inArray(props, key);
-                        descr = getDescriptor(object, key);
-
-                        if (idx === -1) {
-                            addChangeRecord(object, data, {
-                                name: key,
-                                type: "add",
-                                object: object
-                            }, except);
-                            data.properties.push(key);
-                            values.push(object[key]);
-                            descs.push(descr);
-                        } else {
-                            props[idx] = null;
-                            proplen--;
-                            updateCheck(object, data, idx, except, descr);
-                        }
-                    }
-                    deletionCheck(object, props, proplen, data, except);
-
-                    if (!O.isExtensible(object)) {
-                        data.extensible = false;
-                        addChangeRecord(object, data, {
-                            type: "preventExtensions",
-                            object: object
-                        }, except);
-
-                        data.frozen = O.isFrozen(object);
-                    }
-                } else {
-                    while (i < keys.length) {
-                        key = keys[i++];
-                        idx = inArray(props, key);
-                        value = object[key];
-
-                        if (idx === -1) {
-                            addChangeRecord(object, data, {
-                                name: key,
-                                type: "add",
-                                object: object
-                            }, except);
-                            data.properties.push(key);
-                            values.push(value);
-                        } else {
-                            props[idx] = null;
-                            proplen--;
-                            updateCheck(object, data, idx, except);
-                        }
-                    }
-                    deletionCheck(object, props, proplen, data, except);
-                }
-            } else if (!data.frozen) {
-
-                // If the object is not extensible, but not frozen, we just have
-                // to check for value changes
-                for (; i < props.length; i++) {
-                    key = props[i];
-                    updateCheck(object, data, i, except, getDescriptor(object, key));
-                }
-
-                if (O.isFrozen(object)) data.frozen = true;
-            }
-
-            if (getPrototype) {
-                proto = getPrototype(object);
-                if (proto !== data.proto) {
-                    addChangeRecord(object, data, {
-                        type: "setPrototype",
-                        name: "__proto__",
-                        object: object,
-                        oldValue: data.proto
-                    });
-                    data.proto = proto;
-                }
-            }
-        };
-    }(),
-
-
-    /**
-     * Sets up the main loop for object observation and change notification
-     * It stops if no object is observed.
-     * @function runGlobalLoop
-     */
-    runGlobalLoop = function runGlobalLoop() {
-        if (observed.size) {
-            observed.forEach(performPropertyChecks);
-            handlers.forEach(deliverHandlerRecords);
-            nextFrame(runGlobalLoop);
-        }
-    },
-
-
-    /**
-     * Deliver the change records relative to a certain handler, and resets
-     * the record list.
-     * @param {HandlerData} hdata
-     * @param {Handler} handler
-     */
-    deliverHandlerRecords = function deliverHandlerRecords(hdata, handler) {
-        var records = hdata.changeRecords;
-        if (records.length) {
-            hdata.changeRecords = [];
-            handler(records);
-        }
-    },
-
-
-    /**
-     * Returns the notifier for an object - whether it's observed or not
-     * @function retrieveNotifier
-     * @param {Object} object
-     * @param {ObjectData} [data]
-     * @returns {Notifier}
-     */
-    retrieveNotifier = function retrieveNotifier(object, data) {
-        if (arguments.length < 2) data = observed.get(object);
-
-        /** @type {Notifier} */
-        return data && data.notifier || {
-            /**
-             * @method notify
-             * @see http://arv.github.io/ecmascript-object-observe/#notifierprototype._notify
-             * @memberof Notifier
-             * @param {ChangeRecord} changeRecord
-             */
-            notify: function notify(changeRecord) {
-                changeRecord.type; // Just to check the property is there...
-
-                // If there's no data, the object has been unobserved
-                var data = observed.get(object);
-                if (data) {
-                    var recordCopy = { object: object },
-                        prop;
-                    for (prop in changeRecord) {
-                        if (prop !== "object") recordCopy[prop] = changeRecord[prop];
-                    }addChangeRecord(object, data, recordCopy);
-                }
-            },
-
-            /**
-             * @method performChange
-             * @see http://arv.github.io/ecmascript-object-observe/#notifierprototype_.performchange
-             * @memberof Notifier
-             * @param {String} changeType
-             * @param {Performer} func     The task performer
-             * @param {*} [thisObj]        Used to set `this` when calling func
-             */
-            performChange: function performChange(changeType, func /*, thisObj*/) {
-                if (typeof changeType !== "string") throw new TypeError("Invalid non-string changeType");
-
-                if (typeof func !== "function") throw new TypeError("Cannot perform non-function");
-
-                // If there's no data, the object has been unobserved
-                var data = observed.get(object),
-                    prop,
-                    changeRecord,
-                    thisObj = arguments[2],
-                    result = thisObj === _undefined ? func() : func.call(thisObj);
-
-                data && performPropertyChecks(data, object, changeType);
-
-                // If there's no data, the object has been unobserved
-                if (data && result && (typeof result === 'undefined' ? 'undefined' : _typeof(result)) === "object") {
-                    changeRecord = { object: object, type: changeType };
-                    for (prop in result) {
-                        if (prop !== "object" && prop !== "type") changeRecord[prop] = result[prop];
-                    }addChangeRecord(object, data, changeRecord);
-                }
-            }
-        };
-    },
-
-
-    /**
-     * Register (or redefines) an handler in the collection for a given
-     * object and a given type accept list.
-     * @function setHandler
-     * @param {Object} object
-     * @param {ObjectData} data
-     * @param {Handler} handler
-     * @param {String[]} acceptList
-     */
-    setHandler = function setHandler(object, data, handler, acceptList) {
-        var hdata = handlers.get(handler);
-        if (!hdata) handlers.set(handler, hdata = {
-            observed: createMap(),
-            changeRecords: []
-        });
-        hdata.observed.set(object, {
-            acceptList: acceptList.slice(),
-            data: data
-        });
-        data.handlers.set(handler, hdata);
-    },
-
-
-    /**
-     * Adds a change record in a given ObjectData
-     * @function addChangeRecord
-     * @param {Object} object
-     * @param {ObjectData} data
-     * @param {ChangeRecord} changeRecord
-     * @param {String} [except]
-     */
-    addChangeRecord = function addChangeRecord(object, data, changeRecord, except) {
-        data.handlers.forEach(function (hdata) {
-            var acceptList = hdata.observed.get(object).acceptList;
-            // If except is defined, Notifier.performChange has been
-            // called, with except as the type.
-            // All the handlers that accepts that type are skipped.
-            if ((typeof except !== "string" || inArray(acceptList, except) === -1) && inArray(acceptList, changeRecord.type) > -1) hdata.changeRecords.push(changeRecord);
-        });
-    };
-
-    observed = createMap();
-    handlers = createMap();
-
-    /**
-     * @function Object.observe
-     * @see http://arv.github.io/ecmascript-object-observe/#Object.observe
-     * @param {Object} object
-     * @param {Handler} handler
-     * @param {String[]} [acceptList]
-     * @throws {TypeError}
-     * @returns {Object}               The observed object
-     */
-    P.oo.observe = function observe(object, handler, acceptList) {
-        if (!object || (typeof object === 'undefined' ? 'undefined' : _typeof(object)) !== "object" && typeof object !== "function") throw new TypeError("Object.observe cannot observe non-object");
-
-        if (typeof handler !== "function") throw new TypeError("Object.observe cannot deliver to non-function");
-
-        if (O.isFrozen && O.isFrozen(handler)) throw new TypeError("Object.observe cannot deliver to a frozen function object");
-
-        if (acceptList === _undefined) acceptList = defaultAcceptList;else if (!acceptList || (typeof acceptList === 'undefined' ? 'undefined' : _typeof(acceptList)) !== "object") throw new TypeError("Third argument to Object.observe must be an array of strings.");
-
-        doObserve(object, handler, acceptList);
-
-        return object;
-    };
-
-    /**
-     * @function Object.unobserve
-     * @see http://arv.github.io/ecmascript-object-observe/#Object.unobserve
-     * @param {Object} object
-     * @param {Handler} handler
-     * @throws {TypeError}
-     * @returns {Object}         The given object
-     */
-    P.oo.unobserve = function unobserve(object, handler) {
-        if (object === null || (typeof object === 'undefined' ? 'undefined' : _typeof(object)) !== "object" && typeof object !== "function") throw new TypeError("Object.unobserve cannot unobserve non-object");
-
-        if (typeof handler !== "function") throw new TypeError("Object.unobserve cannot deliver to non-function");
-
-        var hdata = handlers.get(handler),
-            odata;
-
-        if (hdata && (odata = hdata.observed.get(object))) {
-            hdata.observed.forEach(function (odata, object) {
-                performPropertyChecks(odata.data, object);
-            });
-            nextFrame(function () {
-                deliverHandlerRecords(hdata, handler);
-            });
-
-            // In Firefox 13-18, size is a function, but createMap should fall
-            // back to the shim for those versions
-            if (hdata.observed.size === 1 && hdata.observed.has(object)) handlers["delete"](handler);else hdata.observed["delete"](object);
-
-            if (odata.data.handlers.size === 1) observed["delete"](object);else odata.data.handlers["delete"](handler);
-        }
-
-        return object;
-    };
-
-    /**
-     * @function Object.getNotifier
-     * @see http://arv.github.io/ecmascript-object-observe/#GetNotifier
-     * @param {Object} object
-     * @throws {TypeError}
-     * @returns {Notifier}
-     */
-    P.oo.getNotifier = function getNotifier(object) {
-        if (object === null || (typeof object === 'undefined' ? 'undefined' : _typeof(object)) !== "object" && typeof object !== "function") throw new TypeError("Object.getNotifier cannot getNotifier non-object");
-
-        if (O.isFrozen && O.isFrozen(object)) return null;
-
-        return retrieveNotifier(object);
-    };
-
-    /**
-     * @function Object.deliverChangeRecords
-     * @see http://arv.github.io/ecmascript-object-observe/#Object.deliverChangeRecords
-     * @see http://arv.github.io/ecmascript-object-observe/#DeliverChangeRecords
-     * @param {Handler} handler
-     * @throws {TypeError}
-     */
-    P.oo.deliverChangeRecords = function deliverChangeRecords(handler) {
-        if (typeof handler !== "function") throw new TypeError("Object.deliverChangeRecords cannot deliver to non-function");
-
-        var hdata = handlers.get(handler);
-        if (hdata) {
-            hdata.observed.forEach(function (odata, object) {
-                performPropertyChecks(odata.data, object);
-            });
-            deliverHandlerRecords(hdata, handler);
-        }
-    };
-})(Proxy, Object, Array, undefined);
-
-},{}],5:[function(require,module,exports){
+},{"razilocomponent":52}],2:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1318,12 +69,12 @@ exports.RaziloBindTrimAlterer = _trimAlterer2.default;
 exports.RaziloBindEqualAlterer = _equalAlterer2.default;
 exports.RaziloBindIdenticalAlterer = _identicalAlterer2.default;
 
-},{"./src/alterer.js":6,"./src/date.alterer.js":7,"./src/equal.alterer.js":8,"./src/identical.alterer.js":9,"./src/join.alterer.js":10,"./src/json.alterer.js":11,"./src/not.alterer.js":12,"./src/prefix.alterer.js":13,"./src/suffix.alterer.js":14,"./src/trim.alterer.js":15}],6:[function(require,module,exports){
+},{"./src/alterer.js":3,"./src/date.alterer.js":4,"./src/equal.alterer.js":5,"./src/identical.alterer.js":6,"./src/join.alterer.js":7,"./src/json.alterer.js":8,"./src/not.alterer.js":9,"./src/prefix.alterer.js":10,"./src/suffix.alterer.js":11,"./src/trim.alterer.js":12}],3:[function(require,module,exports){
 "use strict";
 
 exports.__esModule = true;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -1350,12 +101,12 @@ var Alterer = function () {
 
 exports.default = Alterer;
 
-},{}],7:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _alterer = require('./alterer.js');
 
@@ -1415,7 +166,7 @@ var DateAlterer = function (_Alterer) {
 
 exports.default = DateAlterer;
 
-},{"./alterer.js":6,"razilobind-core":38}],8:[function(require,module,exports){
+},{"./alterer.js":3,"razilobind-core":35}],5:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1472,7 +223,7 @@ var EqualAlterer = function (_Alterer) {
 
 exports.default = EqualAlterer;
 
-},{"./alterer.js":6}],9:[function(require,module,exports){
+},{"./alterer.js":3}],6:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1529,7 +280,7 @@ var IdenticalAlterer = function (_Alterer) {
 
 exports.default = IdenticalAlterer;
 
-},{"./alterer.js":6}],10:[function(require,module,exports){
+},{"./alterer.js":3}],7:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1589,7 +340,7 @@ var JoinAlterer = function (_Alterer) {
 
 exports.default = JoinAlterer;
 
-},{"./alterer.js":6}],11:[function(require,module,exports){
+},{"./alterer.js":3}],8:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1646,7 +397,7 @@ var JsonAlterer = function (_Alterer) {
 
 exports.default = JsonAlterer;
 
-},{"./alterer.js":6}],12:[function(require,module,exports){
+},{"./alterer.js":3}],9:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1703,7 +454,7 @@ var NotAlterer = function (_Alterer) {
 
 exports.default = NotAlterer;
 
-},{"./alterer.js":6}],13:[function(require,module,exports){
+},{"./alterer.js":3}],10:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1760,7 +511,7 @@ var PrefixAlterer = function (_Alterer) {
 
 exports.default = PrefixAlterer;
 
-},{"./alterer.js":6}],14:[function(require,module,exports){
+},{"./alterer.js":3}],11:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1817,7 +568,7 @@ var SuffixAlterer = function (_Alterer) {
 
 exports.default = SuffixAlterer;
 
-},{"./alterer.js":6}],15:[function(require,module,exports){
+},{"./alterer.js":3}],12:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1874,7 +625,7 @@ var TrimAlterer = function (_Alterer) {
 
 exports.default = TrimAlterer;
 
-},{"./alterer.js":6}],16:[function(require,module,exports){
+},{"./alterer.js":3}],13:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -1988,7 +739,7 @@ exports.RaziloBindEventBinder = _eventBinder2.default;
 exports.RaziloBindInitBinder = _initBinder2.default;
 exports.RaziloBindModelBinder = _modelBinder2.default;
 
-},{"./src/attributes.binder.js":17,"./src/binder.js":18,"./src/checked.binder.js":19,"./src/class.binder.js":20,"./src/disabled.binder.js":21,"./src/else.binder.js":22,"./src/event.binder.js":23,"./src/for.binder.js":24,"./src/hide.binder.js":25,"./src/href.binder.js":26,"./src/html.binder.js":27,"./src/if.binder.js":28,"./src/init.binder.js":29,"./src/model.binder.js":30,"./src/required.binder.js":31,"./src/selected.binder.js":32,"./src/show.binder.js":33,"./src/src.binder.js":34,"./src/style.binder.js":35,"./src/text.binder.js":36,"./src/value.binder.js":37}],17:[function(require,module,exports){
+},{"./src/attributes.binder.js":14,"./src/binder.js":15,"./src/checked.binder.js":16,"./src/class.binder.js":17,"./src/disabled.binder.js":18,"./src/else.binder.js":19,"./src/event.binder.js":20,"./src/for.binder.js":21,"./src/hide.binder.js":22,"./src/href.binder.js":23,"./src/html.binder.js":24,"./src/if.binder.js":25,"./src/init.binder.js":26,"./src/model.binder.js":27,"./src/required.binder.js":28,"./src/selected.binder.js":29,"./src/show.binder.js":30,"./src/src.binder.js":31,"./src/style.binder.js":32,"./src/text.binder.js":33,"./src/value.binder.js":34}],14:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2068,7 +819,7 @@ var AttributesBinder = function (_Binder) {
 
 exports.default = AttributesBinder;
 
-},{"./binder.js":18}],18:[function(require,module,exports){
+},{"./binder.js":15}],15:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2183,7 +934,7 @@ var Binder = function () {
 
 exports.default = Binder;
 
-},{"razilobind-core":38}],19:[function(require,module,exports){
+},{"razilobind-core":35}],16:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2296,7 +1047,7 @@ var CheckedBinder = function (_Binder) {
 
 exports.default = CheckedBinder;
 
-},{"./binder.js":18}],20:[function(require,module,exports){
+},{"./binder.js":15}],17:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2381,7 +1132,7 @@ var ClassBinder = function (_Binder) {
 
 exports.default = ClassBinder;
 
-},{"./binder.js":18}],21:[function(require,module,exports){
+},{"./binder.js":15}],18:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2440,7 +1191,7 @@ var DisabledBinder = function (_Binder) {
 
 exports.default = DisabledBinder;
 
-},{"./binder.js":18}],22:[function(require,module,exports){
+},{"./binder.js":15}],19:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2509,7 +1260,7 @@ var ElseBinder = function (_Binder) {
 
 exports.default = ElseBinder;
 
-},{"./binder.js":18}],23:[function(require,module,exports){
+},{"./binder.js":15}],20:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2597,12 +1348,12 @@ var EventBinder = function (_Binder) {
 
 exports.default = EventBinder;
 
-},{"./binder.js":18}],24:[function(require,module,exports){
+},{"./binder.js":15}],21:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _razilobindCore = require('razilobind-core');
 
@@ -2868,7 +1619,7 @@ var ForBinder = function (_Binder) {
 
 exports.default = ForBinder;
 
-},{"./binder.js":18,"razilobind-core":38}],25:[function(require,module,exports){
+},{"./binder.js":15,"razilobind-core":35}],22:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2927,7 +1678,7 @@ var HideBinder = function (_Binder) {
 
 exports.default = HideBinder;
 
-},{"./binder.js":18}],26:[function(require,module,exports){
+},{"./binder.js":15}],23:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -2987,7 +1738,7 @@ var HrefBinder = function (_Binder) {
 
 exports.default = HrefBinder;
 
-},{"./binder.js":18}],27:[function(require,module,exports){
+},{"./binder.js":15}],24:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3047,7 +1798,7 @@ var HtmlBinder = function (_Binder) {
 
 exports.default = HtmlBinder;
 
-},{"./binder.js":18}],28:[function(require,module,exports){
+},{"./binder.js":15}],25:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3116,7 +1867,7 @@ var IfBinder = function (_Binder) {
 
 exports.default = IfBinder;
 
-},{"./binder.js":18}],29:[function(require,module,exports){
+},{"./binder.js":15}],26:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3189,12 +1940,12 @@ var InitBinder = function (_Binder) {
 
 exports.default = InitBinder;
 
-},{"./binder.js":18}],30:[function(require,module,exports){
+},{"./binder.js":15}],27:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _binder = require('./binder.js');
 
@@ -3253,7 +2004,7 @@ var ModelBinder = function (_Binder) {
 
 exports.default = ModelBinder;
 
-},{"./binder.js":18}],31:[function(require,module,exports){
+},{"./binder.js":15}],28:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3312,12 +2063,12 @@ var RequiredBinder = function (_Binder) {
 
 exports.default = RequiredBinder;
 
-},{"./binder.js":18}],32:[function(require,module,exports){
+},{"./binder.js":15}],29:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _binder = require('./binder.js');
 
@@ -3376,7 +2127,7 @@ var SelectedBinder = function (_Binder) {
 
 exports.default = SelectedBinder;
 
-},{"./binder.js":18}],33:[function(require,module,exports){
+},{"./binder.js":15}],30:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3435,7 +2186,7 @@ var ShowBinder = function (_Binder) {
 
 exports.default = ShowBinder;
 
-},{"./binder.js":18}],34:[function(require,module,exports){
+},{"./binder.js":15}],31:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3495,12 +2246,12 @@ var SrcBinder = function (_Binder) {
 
 exports.default = SrcBinder;
 
-},{"./binder.js":18}],35:[function(require,module,exports){
+},{"./binder.js":15}],32:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _binder = require('./binder.js');
 
@@ -3568,12 +2319,12 @@ var StyleBinder = function (_Binder) {
 
 exports.default = StyleBinder;
 
-},{"./binder.js":18}],36:[function(require,module,exports){
+},{"./binder.js":15}],33:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _binder = require('./binder.js');
 
@@ -3629,12 +2380,12 @@ var TextBinder = function (_Binder) {
 
 exports.default = TextBinder;
 
-},{"./binder.js":18}],37:[function(require,module,exports){
+},{"./binder.js":15}],34:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _binder = require('./binder.js');
 
@@ -3770,7 +2521,7 @@ var ValueBinder = function (_Binder) {
 
 exports.default = ValueBinder;
 
-},{"./binder.js":18}],38:[function(require,module,exports){
+},{"./binder.js":15}],35:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3804,7 +2555,7 @@ exports.RaziloBindCoreTraverser = _traverser2.default;
 exports.RaziloBindCoreObserver = _observer2.default;
 exports.RaziloBindDateFormat = _dateFormat2.default;
 
-},{"./src/core.js":39,"./src/date-format.js":40,"./src/detector.js":41,"./src/observer.js":42,"./src/traverser.js":43}],39:[function(require,module,exports){
+},{"./src/core.js":36,"./src/date-format.js":37,"./src/detector.js":38,"./src/observer.js":39,"./src/traverser.js":40}],36:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -3882,7 +2633,7 @@ var Core = function () {
 
 exports.default = Core;
 
-},{"./observer.js":42,"./traverser.js":43}],40:[function(require,module,exports){
+},{"./observer.js":39,"./traverser.js":40}],37:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4064,12 +2815,12 @@ var DateFormat = function () {
 
 exports.default = DateFormat;
 
-},{}],41:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -4166,12 +2917,12 @@ var Detector = function () {
 
 exports.default = Detector;
 
-},{}],42:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -4220,19 +2971,15 @@ var Observer = function () {
 
 	Observer.proxy = function proxy(obj, fn, deep, prefix) {
 		prefix = typeof prefix === 'undefined' ? '' : prefix;
-		if (typeof this.object === 'undefined') this.object = obj;
 		return new Proxy(obj, {
 			set: function set(target, prop, value) {
 				var old = target[prop];
 				target[prop] = value;
-				fn(prefix + prop, old, value);
+				fn.call(this, prefix + prop, old, value);
 				return true;
 			},
 			get: function get(target, prop) {
-				var val = target[prop];
-
-				if (!!deep && val instanceof Object && typeof prop === 'string' && val !== null && !(val instanceof Date)) return Observer.object(val, fn, deep, prefix + prop + '.');
-				return val;
+				return !deep || target[prop] == null || _typeof(target[prop]) !== 'object' || target[prop] instanceof Date ? target[prop] : Observer.proxy(target[prop], fn, deep, prefix + prop + '.');
 			}
 		});
 	};
@@ -4266,7 +3013,7 @@ var Observer = function () {
 
 exports.default = Observer;
 
-},{}],43:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4307,8 +3054,7 @@ var Traverser = function () {
         // go deep! <o_0>
         if (element.childNodes) {
             for (var _i = 0; _i < element.childNodes.length; _i++) {
-                // skip those not wanting to be traversed
-                if (!!element.childNodes[_i].parentNode.hasAttribute('no-traverse')) continue;
+                if (element.childNodes[_i].nodeType !== 1) continue;
                 this.traverse(element.childNodes[_i], model);
             }
         }
@@ -4319,7 +3065,7 @@ var Traverser = function () {
 
 exports.default = Traverser;
 
-},{"./detector.js":41}],44:[function(require,module,exports){
+},{"./detector.js":38}],41:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4373,7 +3119,7 @@ exports.RaziloBindPhantomResolver = _phantomResolver2.default;
 exports.RaziloBindPropertyResolver = _propertyResolver2.default;
 exports.RaziloBindStringResolver = _stringResolver2.default;
 
-},{"./src/array.resolver.js":45,"./src/boolean.resolver.js":46,"./src/method.resolver.js":47,"./src/number.resolver.js":48,"./src/object.resolver.js":49,"./src/phantom.resolver.js":50,"./src/property.resolver.js":51,"./src/resolver.js":52,"./src/string.resolver.js":53}],45:[function(require,module,exports){
+},{"./src/array.resolver.js":42,"./src/boolean.resolver.js":43,"./src/method.resolver.js":44,"./src/number.resolver.js":45,"./src/object.resolver.js":46,"./src/phantom.resolver.js":47,"./src/property.resolver.js":48,"./src/resolver.js":49,"./src/string.resolver.js":50}],42:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4527,7 +3273,7 @@ var ArrayResolver = function (_Resolver) {
 
 exports.default = ArrayResolver;
 
-},{"./boolean.resolver.js":46,"./method.resolver.js":47,"./number.resolver.js":48,"./object.resolver.js":49,"./phantom.resolver.js":50,"./property.resolver.js":51,"./resolver.js":52,"./string.resolver.js":53}],46:[function(require,module,exports){
+},{"./boolean.resolver.js":43,"./method.resolver.js":44,"./number.resolver.js":45,"./object.resolver.js":46,"./phantom.resolver.js":47,"./property.resolver.js":48,"./resolver.js":49,"./string.resolver.js":50}],43:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4608,7 +3354,7 @@ var BooleanResolver = function (_Resolver) {
 
 exports.default = BooleanResolver;
 
-},{"./resolver.js":52}],47:[function(require,module,exports){
+},{"./resolver.js":49}],44:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4766,7 +3512,7 @@ var MethodResolver = function (_Resolver) {
 
 exports.default = MethodResolver;
 
-},{"./array.resolver.js":45,"./boolean.resolver.js":46,"./number.resolver.js":48,"./object.resolver.js":49,"./phantom.resolver.js":50,"./property.resolver.js":51,"./resolver.js":52,"./string.resolver.js":53}],48:[function(require,module,exports){
+},{"./array.resolver.js":42,"./boolean.resolver.js":43,"./number.resolver.js":45,"./object.resolver.js":46,"./phantom.resolver.js":47,"./property.resolver.js":48,"./resolver.js":49,"./string.resolver.js":50}],45:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -4847,7 +3593,7 @@ var NumberResolver = function (_Resolver) {
 
 exports.default = NumberResolver;
 
-},{"./resolver.js":52}],49:[function(require,module,exports){
+},{"./resolver.js":49}],46:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -5022,7 +3768,7 @@ var ObjectResolver = function (_Resolver) {
 
 exports.default = ObjectResolver;
 
-},{"./array.resolver.js":45,"./boolean.resolver.js":46,"./method.resolver.js":47,"./number.resolver.js":48,"./phantom.resolver.js":50,"./property.resolver.js":51,"./resolver.js":52,"./string.resolver.js":53}],50:[function(require,module,exports){
+},{"./array.resolver.js":42,"./boolean.resolver.js":43,"./method.resolver.js":44,"./number.resolver.js":45,"./phantom.resolver.js":47,"./property.resolver.js":48,"./resolver.js":49,"./string.resolver.js":50}],47:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -5114,6 +3860,7 @@ var PhantomResolver = function (_Resolver) {
 			if (sniffed.phantom && (!sniffed.phantom.valueName || sniffed.phantom.valueName == data)) break;
 			sniffed = sniffed.parentNode;
 		}
+
 		if (!sniffed || !sniffed.phantom) return result;
 
 		// resolve key and value names, else default (force $ in front)
@@ -5139,9 +3886,8 @@ var PhantomResolver = function (_Resolver) {
 
 				result.resolved = typeof propRes.resolved !== 'undefined' ? propRes.resolved : undefined;
 				if (propRes.observers.length > 0) {
-					propRes.observers[propRes.observers.length - 1] = result.observers[result.observers.length - 1] + '.' + propRes.observers[propRes.observers.length - 1];
 					for (var key2 in propRes.observers) {
-						result.observers.push(propRes.observers[key2]);
+						if (result.observers.indexOf(propRes.observers[key2]) < 0) result.observers.push(propRes.observers[key2]);
 					}
 				}
 			} else result.resolved = sniffed.phantom.initialValue; // fugees (one-time!)
@@ -5155,7 +3901,7 @@ var PhantomResolver = function (_Resolver) {
 
 exports.default = PhantomResolver;
 
-},{"./property.resolver.js":51,"./resolver.js":52}],51:[function(require,module,exports){
+},{"./property.resolver.js":48,"./resolver.js":49}],48:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -5293,7 +4039,7 @@ var PropertyResolver = function (_Resolver) {
 
 exports.default = PropertyResolver;
 
-},{"./phantom.resolver.js":50,"./resolver.js":52}],52:[function(require,module,exports){
+},{"./phantom.resolver.js":47,"./resolver.js":49}],49:[function(require,module,exports){
 "use strict";
 
 exports.__esModule = true;
@@ -5342,7 +4088,7 @@ var Resolver = function () {
 
 exports.default = Resolver;
 
-},{}],53:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
@@ -5423,12 +4169,12 @@ var StringResolver = function (_Resolver) {
 
 exports.default = StringResolver;
 
-},{"./resolver.js":52}],54:[function(require,module,exports){
+},{"./resolver.js":49}],51:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _razilobindCore = require('razilobind-core');
 
@@ -5552,2555 +4298,92 @@ var RaziloBind = function (_RaziloBindCore) {
 
 exports.default = RaziloBind;
 
-},{"razilobind-alterer":5,"razilobind-binder":16,"razilobind-core":38,"razilobind-resolver":44}],55:[function(require,module,exports){
-'use strict';
-
-/**
- * @license
- * Copyright (c) 2014 The Polymer Project Authors. All rights reserved.
- * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
- * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
- * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
- * Code distributed by Google as part of the polymer project is also
- * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
- */
-// @version 0.7.22
-(function () {
-  window.WebComponents = window.WebComponents || {
-    flags: {}
-  };
-  var file = "webcomponents-lite.js";
-  var script = document.querySelector('script[src*="' + file + '"]');
-  var flags = {};
-  if (!flags.noOpts) {
-    location.search.slice(1).split("&").forEach(function (option) {
-      var parts = option.split("=");
-      var match;
-      if (parts[0] && (match = parts[0].match(/wc-(.+)/))) {
-        flags[match[1]] = parts[1] || true;
-      }
-    });
-    if (script) {
-      for (var i = 0, a; a = script.attributes[i]; i++) {
-        if (a.name !== "src") {
-          flags[a.name] = a.value || true;
-        }
-      }
-    }
-    if (flags.log && flags.log.split) {
-      var parts = flags.log.split(",");
-      flags.log = {};
-      parts.forEach(function (f) {
-        flags.log[f] = true;
-      });
-    } else {
-      flags.log = {};
-    }
-  }
-  if (flags.register) {
-    window.CustomElements = window.CustomElements || {
-      flags: {}
-    };
-    window.CustomElements.flags.register = flags.register;
-  }
-  WebComponents.flags = flags;
-})();
-
-(function (scope) {
-  "use strict";
-
-  var hasWorkingUrl = false;
-  if (!scope.forceJURL) {
-    try {
-      var u = new URL("b", "http://a");
-      u.pathname = "c%20d";
-      hasWorkingUrl = u.href === "http://a/c%20d";
-    } catch (e) {}
-  }
-  if (hasWorkingUrl) return;
-  var relative = Object.create(null);
-  relative["ftp"] = 21;
-  relative["file"] = 0;
-  relative["gopher"] = 70;
-  relative["http"] = 80;
-  relative["https"] = 443;
-  relative["ws"] = 80;
-  relative["wss"] = 443;
-  var relativePathDotMapping = Object.create(null);
-  relativePathDotMapping["%2e"] = ".";
-  relativePathDotMapping[".%2e"] = "..";
-  relativePathDotMapping["%2e."] = "..";
-  relativePathDotMapping["%2e%2e"] = "..";
-  function isRelativeScheme(scheme) {
-    return relative[scheme] !== undefined;
-  }
-  function invalid() {
-    clear.call(this);
-    this._isInvalid = true;
-  }
-  function IDNAToASCII(h) {
-    if ("" == h) {
-      invalid.call(this);
-    }
-    return h.toLowerCase();
-  }
-  function percentEscape(c) {
-    var unicode = c.charCodeAt(0);
-    if (unicode > 32 && unicode < 127 && [34, 35, 60, 62, 63, 96].indexOf(unicode) == -1) {
-      return c;
-    }
-    return encodeURIComponent(c);
-  }
-  function percentEscapeQuery(c) {
-    var unicode = c.charCodeAt(0);
-    if (unicode > 32 && unicode < 127 && [34, 35, 60, 62, 96].indexOf(unicode) == -1) {
-      return c;
-    }
-    return encodeURIComponent(c);
-  }
-  var EOF = undefined,
-      ALPHA = /[a-zA-Z]/,
-      ALPHANUMERIC = /[a-zA-Z0-9\+\-\.]/;
-  function parse(input, stateOverride, base) {
-    function err(message) {
-      errors.push(message);
-    }
-    var state = stateOverride || "scheme start",
-        cursor = 0,
-        buffer = "",
-        seenAt = false,
-        seenBracket = false,
-        errors = [];
-    loop: while ((input[cursor - 1] != EOF || cursor == 0) && !this._isInvalid) {
-      var c = input[cursor];
-      switch (state) {
-        case "scheme start":
-          if (c && ALPHA.test(c)) {
-            buffer += c.toLowerCase();
-            state = "scheme";
-          } else if (!stateOverride) {
-            buffer = "";
-            state = "no scheme";
-            continue;
-          } else {
-            err("Invalid scheme.");
-            break loop;
-          }
-          break;
-
-        case "scheme":
-          if (c && ALPHANUMERIC.test(c)) {
-            buffer += c.toLowerCase();
-          } else if (":" == c) {
-            this._scheme = buffer;
-            buffer = "";
-            if (stateOverride) {
-              break loop;
-            }
-            if (isRelativeScheme(this._scheme)) {
-              this._isRelative = true;
-            }
-            if ("file" == this._scheme) {
-              state = "relative";
-            } else if (this._isRelative && base && base._scheme == this._scheme) {
-              state = "relative or authority";
-            } else if (this._isRelative) {
-              state = "authority first slash";
-            } else {
-              state = "scheme data";
-            }
-          } else if (!stateOverride) {
-            buffer = "";
-            cursor = 0;
-            state = "no scheme";
-            continue;
-          } else if (EOF == c) {
-            break loop;
-          } else {
-            err("Code point not allowed in scheme: " + c);
-            break loop;
-          }
-          break;
-
-        case "scheme data":
-          if ("?" == c) {
-            this._query = "?";
-            state = "query";
-          } else if ("#" == c) {
-            this._fragment = "#";
-            state = "fragment";
-          } else {
-            if (EOF != c && "	" != c && "\n" != c && "\r" != c) {
-              this._schemeData += percentEscape(c);
-            }
-          }
-          break;
-
-        case "no scheme":
-          if (!base || !isRelativeScheme(base._scheme)) {
-            err("Missing scheme.");
-            invalid.call(this);
-          } else {
-            state = "relative";
-            continue;
-          }
-          break;
-
-        case "relative or authority":
-          if ("/" == c && "/" == input[cursor + 1]) {
-            state = "authority ignore slashes";
-          } else {
-            err("Expected /, got: " + c);
-            state = "relative";
-            continue;
-          }
-          break;
-
-        case "relative":
-          this._isRelative = true;
-          if ("file" != this._scheme) this._scheme = base._scheme;
-          if (EOF == c) {
-            this._host = base._host;
-            this._port = base._port;
-            this._path = base._path.slice();
-            this._query = base._query;
-            this._username = base._username;
-            this._password = base._password;
-            break loop;
-          } else if ("/" == c || "\\" == c) {
-            if ("\\" == c) err("\\ is an invalid code point.");
-            state = "relative slash";
-          } else if ("?" == c) {
-            this._host = base._host;
-            this._port = base._port;
-            this._path = base._path.slice();
-            this._query = "?";
-            this._username = base._username;
-            this._password = base._password;
-            state = "query";
-          } else if ("#" == c) {
-            this._host = base._host;
-            this._port = base._port;
-            this._path = base._path.slice();
-            this._query = base._query;
-            this._fragment = "#";
-            this._username = base._username;
-            this._password = base._password;
-            state = "fragment";
-          } else {
-            var nextC = input[cursor + 1];
-            var nextNextC = input[cursor + 2];
-            if ("file" != this._scheme || !ALPHA.test(c) || nextC != ":" && nextC != "|" || EOF != nextNextC && "/" != nextNextC && "\\" != nextNextC && "?" != nextNextC && "#" != nextNextC) {
-              this._host = base._host;
-              this._port = base._port;
-              this._username = base._username;
-              this._password = base._password;
-              this._path = base._path.slice();
-              this._path.pop();
-            }
-            state = "relative path";
-            continue;
-          }
-          break;
-
-        case "relative slash":
-          if ("/" == c || "\\" == c) {
-            if ("\\" == c) {
-              err("\\ is an invalid code point.");
-            }
-            if ("file" == this._scheme) {
-              state = "file host";
-            } else {
-              state = "authority ignore slashes";
-            }
-          } else {
-            if ("file" != this._scheme) {
-              this._host = base._host;
-              this._port = base._port;
-              this._username = base._username;
-              this._password = base._password;
-            }
-            state = "relative path";
-            continue;
-          }
-          break;
-
-        case "authority first slash":
-          if ("/" == c) {
-            state = "authority second slash";
-          } else {
-            err("Expected '/', got: " + c);
-            state = "authority ignore slashes";
-            continue;
-          }
-          break;
-
-        case "authority second slash":
-          state = "authority ignore slashes";
-          if ("/" != c) {
-            err("Expected '/', got: " + c);
-            continue;
-          }
-          break;
-
-        case "authority ignore slashes":
-          if ("/" != c && "\\" != c) {
-            state = "authority";
-            continue;
-          } else {
-            err("Expected authority, got: " + c);
-          }
-          break;
-
-        case "authority":
-          if ("@" == c) {
-            if (seenAt) {
-              err("@ already seen.");
-              buffer += "%40";
-            }
-            seenAt = true;
-            for (var i = 0; i < buffer.length; i++) {
-              var cp = buffer[i];
-              if ("	" == cp || "\n" == cp || "\r" == cp) {
-                err("Invalid whitespace in authority.");
-                continue;
-              }
-              if (":" == cp && null === this._password) {
-                this._password = "";
-                continue;
-              }
-              var tempC = percentEscape(cp);
-              null !== this._password ? this._password += tempC : this._username += tempC;
-            }
-            buffer = "";
-          } else if (EOF == c || "/" == c || "\\" == c || "?" == c || "#" == c) {
-            cursor -= buffer.length;
-            buffer = "";
-            state = "host";
-            continue;
-          } else {
-            buffer += c;
-          }
-          break;
-
-        case "file host":
-          if (EOF == c || "/" == c || "\\" == c || "?" == c || "#" == c) {
-            if (buffer.length == 2 && ALPHA.test(buffer[0]) && (buffer[1] == ":" || buffer[1] == "|")) {
-              state = "relative path";
-            } else if (buffer.length == 0) {
-              state = "relative path start";
-            } else {
-              this._host = IDNAToASCII.call(this, buffer);
-              buffer = "";
-              state = "relative path start";
-            }
-            continue;
-          } else if ("	" == c || "\n" == c || "\r" == c) {
-            err("Invalid whitespace in file host.");
-          } else {
-            buffer += c;
-          }
-          break;
-
-        case "host":
-        case "hostname":
-          if (":" == c && !seenBracket) {
-            this._host = IDNAToASCII.call(this, buffer);
-            buffer = "";
-            state = "port";
-            if ("hostname" == stateOverride) {
-              break loop;
-            }
-          } else if (EOF == c || "/" == c || "\\" == c || "?" == c || "#" == c) {
-            this._host = IDNAToASCII.call(this, buffer);
-            buffer = "";
-            state = "relative path start";
-            if (stateOverride) {
-              break loop;
-            }
-            continue;
-          } else if ("	" != c && "\n" != c && "\r" != c) {
-            if ("[" == c) {
-              seenBracket = true;
-            } else if ("]" == c) {
-              seenBracket = false;
-            }
-            buffer += c;
-          } else {
-            err("Invalid code point in host/hostname: " + c);
-          }
-          break;
-
-        case "port":
-          if (/[0-9]/.test(c)) {
-            buffer += c;
-          } else if (EOF == c || "/" == c || "\\" == c || "?" == c || "#" == c || stateOverride) {
-            if ("" != buffer) {
-              var temp = parseInt(buffer, 10);
-              if (temp != relative[this._scheme]) {
-                this._port = temp + "";
-              }
-              buffer = "";
-            }
-            if (stateOverride) {
-              break loop;
-            }
-            state = "relative path start";
-            continue;
-          } else if ("	" == c || "\n" == c || "\r" == c) {
-            err("Invalid code point in port: " + c);
-          } else {
-            invalid.call(this);
-          }
-          break;
-
-        case "relative path start":
-          if ("\\" == c) err("'\\' not allowed in path.");
-          state = "relative path";
-          if ("/" != c && "\\" != c) {
-            continue;
-          }
-          break;
-
-        case "relative path":
-          if (EOF == c || "/" == c || "\\" == c || !stateOverride && ("?" == c || "#" == c)) {
-            if ("\\" == c) {
-              err("\\ not allowed in relative path.");
-            }
-            var tmp;
-            if (tmp = relativePathDotMapping[buffer.toLowerCase()]) {
-              buffer = tmp;
-            }
-            if (".." == buffer) {
-              this._path.pop();
-              if ("/" != c && "\\" != c) {
-                this._path.push("");
-              }
-            } else if ("." == buffer && "/" != c && "\\" != c) {
-              this._path.push("");
-            } else if ("." != buffer) {
-              if ("file" == this._scheme && this._path.length == 0 && buffer.length == 2 && ALPHA.test(buffer[0]) && buffer[1] == "|") {
-                buffer = buffer[0] + ":";
-              }
-              this._path.push(buffer);
-            }
-            buffer = "";
-            if ("?" == c) {
-              this._query = "?";
-              state = "query";
-            } else if ("#" == c) {
-              this._fragment = "#";
-              state = "fragment";
-            }
-          } else if ("	" != c && "\n" != c && "\r" != c) {
-            buffer += percentEscape(c);
-          }
-          break;
-
-        case "query":
-          if (!stateOverride && "#" == c) {
-            this._fragment = "#";
-            state = "fragment";
-          } else if (EOF != c && "	" != c && "\n" != c && "\r" != c) {
-            this._query += percentEscapeQuery(c);
-          }
-          break;
-
-        case "fragment":
-          if (EOF != c && "	" != c && "\n" != c && "\r" != c) {
-            this._fragment += c;
-          }
-          break;
-      }
-      cursor++;
-    }
-  }
-  function clear() {
-    this._scheme = "";
-    this._schemeData = "";
-    this._username = "";
-    this._password = null;
-    this._host = "";
-    this._port = "";
-    this._path = [];
-    this._query = "";
-    this._fragment = "";
-    this._isInvalid = false;
-    this._isRelative = false;
-  }
-  function jURL(url, base) {
-    if (base !== undefined && !(base instanceof jURL)) base = new jURL(String(base));
-    this._url = url;
-    clear.call(this);
-    var input = url.replace(/^[ \t\r\n\f]+|[ \t\r\n\f]+$/g, "");
-    parse.call(this, input, null, base);
-  }
-  jURL.prototype = {
-    toString: function toString() {
-      return this.href;
-    },
-    get href() {
-      if (this._isInvalid) return this._url;
-      var authority = "";
-      if ("" != this._username || null != this._password) {
-        authority = this._username + (null != this._password ? ":" + this._password : "") + "@";
-      }
-      return this.protocol + (this._isRelative ? "//" + authority + this.host : "") + this.pathname + this._query + this._fragment;
-    },
-    set href(href) {
-      clear.call(this);
-      parse.call(this, href);
-    },
-    get protocol() {
-      return this._scheme + ":";
-    },
-    set protocol(protocol) {
-      if (this._isInvalid) return;
-      parse.call(this, protocol + ":", "scheme start");
-    },
-    get host() {
-      return this._isInvalid ? "" : this._port ? this._host + ":" + this._port : this._host;
-    },
-    set host(host) {
-      if (this._isInvalid || !this._isRelative) return;
-      parse.call(this, host, "host");
-    },
-    get hostname() {
-      return this._host;
-    },
-    set hostname(hostname) {
-      if (this._isInvalid || !this._isRelative) return;
-      parse.call(this, hostname, "hostname");
-    },
-    get port() {
-      return this._port;
-    },
-    set port(port) {
-      if (this._isInvalid || !this._isRelative) return;
-      parse.call(this, port, "port");
-    },
-    get pathname() {
-      return this._isInvalid ? "" : this._isRelative ? "/" + this._path.join("/") : this._schemeData;
-    },
-    set pathname(pathname) {
-      if (this._isInvalid || !this._isRelative) return;
-      this._path = [];
-      parse.call(this, pathname, "relative path start");
-    },
-    get search() {
-      return this._isInvalid || !this._query || "?" == this._query ? "" : this._query;
-    },
-    set search(search) {
-      if (this._isInvalid || !this._isRelative) return;
-      this._query = "?";
-      if ("?" == search[0]) search = search.slice(1);
-      parse.call(this, search, "query");
-    },
-    get hash() {
-      return this._isInvalid || !this._fragment || "#" == this._fragment ? "" : this._fragment;
-    },
-    set hash(hash) {
-      if (this._isInvalid) return;
-      this._fragment = "#";
-      if ("#" == hash[0]) hash = hash.slice(1);
-      parse.call(this, hash, "fragment");
-    },
-    get origin() {
-      var host;
-      if (this._isInvalid || !this._scheme) {
-        return "";
-      }
-      switch (this._scheme) {
-        case "data":
-        case "file":
-        case "javascript":
-        case "mailto":
-          return "null";
-      }
-      host = this.host;
-      if (!host) {
-        return "";
-      }
-      return this._scheme + "://" + host;
-    }
-  };
-  var OriginalURL = scope.URL;
-  if (OriginalURL) {
-    jURL.createObjectURL = function (blob) {
-      return OriginalURL.createObjectURL.apply(OriginalURL, arguments);
-    };
-    jURL.revokeObjectURL = function (url) {
-      OriginalURL.revokeObjectURL(url);
-    };
-  }
-  scope.URL = jURL;
-})(self);
-
-if (typeof WeakMap === "undefined") {
-  (function () {
-    var defineProperty = Object.defineProperty;
-    var counter = Date.now() % 1e9;
-    var WeakMap = function WeakMap() {
-      this.name = "__st" + (Math.random() * 1e9 >>> 0) + (counter++ + "__");
-    };
-    WeakMap.prototype = {
-      set: function set(key, value) {
-        var entry = key[this.name];
-        if (entry && entry[0] === key) entry[1] = value;else defineProperty(key, this.name, {
-          value: [key, value],
-          writable: true
-        });
-        return this;
-      },
-      get: function get(key) {
-        var entry;
-        return (entry = key[this.name]) && entry[0] === key ? entry[1] : undefined;
-      },
-      "delete": function _delete(key) {
-        var entry = key[this.name];
-        if (!entry || entry[0] !== key) return false;
-        entry[0] = entry[1] = undefined;
-        return true;
-      },
-      has: function has(key) {
-        var entry = key[this.name];
-        if (!entry) return false;
-        return entry[0] === key;
-      }
-    };
-    window.WeakMap = WeakMap;
-  })();
-}
-
-(function (global) {
-  if (global.JsMutationObserver) {
-    return;
-  }
-  var registrationsTable = new WeakMap();
-  var setImmediate;
-  if (/Trident|Edge/.test(navigator.userAgent)) {
-    setImmediate = setTimeout;
-  } else if (window.setImmediate) {
-    setImmediate = window.setImmediate;
-  } else {
-    var setImmediateQueue = [];
-    var sentinel = String(Math.random());
-    window.addEventListener("message", function (e) {
-      if (e.data === sentinel) {
-        var queue = setImmediateQueue;
-        setImmediateQueue = [];
-        queue.forEach(function (func) {
-          func();
-        });
-      }
-    });
-    setImmediate = function setImmediate(func) {
-      setImmediateQueue.push(func);
-      window.postMessage(sentinel, "*");
-    };
-  }
-  var isScheduled = false;
-  var scheduledObservers = [];
-  function scheduleCallback(observer) {
-    scheduledObservers.push(observer);
-    if (!isScheduled) {
-      isScheduled = true;
-      setImmediate(dispatchCallbacks);
-    }
-  }
-  function wrapIfNeeded(node) {
-    return window.ShadowDOMPolyfill && window.ShadowDOMPolyfill.wrapIfNeeded(node) || node;
-  }
-  function dispatchCallbacks() {
-    isScheduled = false;
-    var observers = scheduledObservers;
-    scheduledObservers = [];
-    observers.sort(function (o1, o2) {
-      return o1.uid_ - o2.uid_;
-    });
-    var anyNonEmpty = false;
-    observers.forEach(function (observer) {
-      var queue = observer.takeRecords();
-      removeTransientObserversFor(observer);
-      if (queue.length) {
-        observer.callback_(queue, observer);
-        anyNonEmpty = true;
-      }
-    });
-    if (anyNonEmpty) dispatchCallbacks();
-  }
-  function removeTransientObserversFor(observer) {
-    observer.nodes_.forEach(function (node) {
-      var registrations = registrationsTable.get(node);
-      if (!registrations) return;
-      registrations.forEach(function (registration) {
-        if (registration.observer === observer) registration.removeTransientObservers();
-      });
-    });
-  }
-  function forEachAncestorAndObserverEnqueueRecord(target, callback) {
-    for (var node = target; node; node = node.parentNode) {
-      var registrations = registrationsTable.get(node);
-      if (registrations) {
-        for (var j = 0; j < registrations.length; j++) {
-          var registration = registrations[j];
-          var options = registration.options;
-          if (node !== target && !options.subtree) continue;
-          var record = callback(options);
-          if (record) registration.enqueue(record);
-        }
-      }
-    }
-  }
-  var uidCounter = 0;
-  function JsMutationObserver(callback) {
-    this.callback_ = callback;
-    this.nodes_ = [];
-    this.records_ = [];
-    this.uid_ = ++uidCounter;
-  }
-  JsMutationObserver.prototype = {
-    observe: function observe(target, options) {
-      target = wrapIfNeeded(target);
-      if (!options.childList && !options.attributes && !options.characterData || options.attributeOldValue && !options.attributes || options.attributeFilter && options.attributeFilter.length && !options.attributes || options.characterDataOldValue && !options.characterData) {
-        throw new SyntaxError();
-      }
-      var registrations = registrationsTable.get(target);
-      if (!registrations) registrationsTable.set(target, registrations = []);
-      var registration;
-      for (var i = 0; i < registrations.length; i++) {
-        if (registrations[i].observer === this) {
-          registration = registrations[i];
-          registration.removeListeners();
-          registration.options = options;
-          break;
-        }
-      }
-      if (!registration) {
-        registration = new Registration(this, target, options);
-        registrations.push(registration);
-        this.nodes_.push(target);
-      }
-      registration.addListeners();
-    },
-    disconnect: function disconnect() {
-      this.nodes_.forEach(function (node) {
-        var registrations = registrationsTable.get(node);
-        for (var i = 0; i < registrations.length; i++) {
-          var registration = registrations[i];
-          if (registration.observer === this) {
-            registration.removeListeners();
-            registrations.splice(i, 1);
-            break;
-          }
-        }
-      }, this);
-      this.records_ = [];
-    },
-    takeRecords: function takeRecords() {
-      var copyOfRecords = this.records_;
-      this.records_ = [];
-      return copyOfRecords;
-    }
-  };
-  function MutationRecord(type, target) {
-    this.type = type;
-    this.target = target;
-    this.addedNodes = [];
-    this.removedNodes = [];
-    this.previousSibling = null;
-    this.nextSibling = null;
-    this.attributeName = null;
-    this.attributeNamespace = null;
-    this.oldValue = null;
-  }
-  function copyMutationRecord(original) {
-    var record = new MutationRecord(original.type, original.target);
-    record.addedNodes = original.addedNodes.slice();
-    record.removedNodes = original.removedNodes.slice();
-    record.previousSibling = original.previousSibling;
-    record.nextSibling = original.nextSibling;
-    record.attributeName = original.attributeName;
-    record.attributeNamespace = original.attributeNamespace;
-    record.oldValue = original.oldValue;
-    return record;
-  }
-  var currentRecord, recordWithOldValue;
-  function getRecord(type, target) {
-    return currentRecord = new MutationRecord(type, target);
-  }
-  function getRecordWithOldValue(oldValue) {
-    if (recordWithOldValue) return recordWithOldValue;
-    recordWithOldValue = copyMutationRecord(currentRecord);
-    recordWithOldValue.oldValue = oldValue;
-    return recordWithOldValue;
-  }
-  function clearRecords() {
-    currentRecord = recordWithOldValue = undefined;
-  }
-  function recordRepresentsCurrentMutation(record) {
-    return record === recordWithOldValue || record === currentRecord;
-  }
-  function selectRecord(lastRecord, newRecord) {
-    if (lastRecord === newRecord) return lastRecord;
-    if (recordWithOldValue && recordRepresentsCurrentMutation(lastRecord)) return recordWithOldValue;
-    return null;
-  }
-  function Registration(observer, target, options) {
-    this.observer = observer;
-    this.target = target;
-    this.options = options;
-    this.transientObservedNodes = [];
-  }
-  Registration.prototype = {
-    enqueue: function enqueue(record) {
-      var records = this.observer.records_;
-      var length = records.length;
-      if (records.length > 0) {
-        var lastRecord = records[length - 1];
-        var recordToReplaceLast = selectRecord(lastRecord, record);
-        if (recordToReplaceLast) {
-          records[length - 1] = recordToReplaceLast;
-          return;
-        }
-      } else {
-        scheduleCallback(this.observer);
-      }
-      records[length] = record;
-    },
-    addListeners: function addListeners() {
-      this.addListeners_(this.target);
-    },
-    addListeners_: function addListeners_(node) {
-      var options = this.options;
-      if (options.attributes) node.addEventListener("DOMAttrModified", this, true);
-      if (options.characterData) node.addEventListener("DOMCharacterDataModified", this, true);
-      if (options.childList) node.addEventListener("DOMNodeInserted", this, true);
-      if (options.childList || options.subtree) node.addEventListener("DOMNodeRemoved", this, true);
-    },
-    removeListeners: function removeListeners() {
-      this.removeListeners_(this.target);
-    },
-    removeListeners_: function removeListeners_(node) {
-      var options = this.options;
-      if (options.attributes) node.removeEventListener("DOMAttrModified", this, true);
-      if (options.characterData) node.removeEventListener("DOMCharacterDataModified", this, true);
-      if (options.childList) node.removeEventListener("DOMNodeInserted", this, true);
-      if (options.childList || options.subtree) node.removeEventListener("DOMNodeRemoved", this, true);
-    },
-    addTransientObserver: function addTransientObserver(node) {
-      if (node === this.target) return;
-      this.addListeners_(node);
-      this.transientObservedNodes.push(node);
-      var registrations = registrationsTable.get(node);
-      if (!registrations) registrationsTable.set(node, registrations = []);
-      registrations.push(this);
-    },
-    removeTransientObservers: function removeTransientObservers() {
-      var transientObservedNodes = this.transientObservedNodes;
-      this.transientObservedNodes = [];
-      transientObservedNodes.forEach(function (node) {
-        this.removeListeners_(node);
-        var registrations = registrationsTable.get(node);
-        for (var i = 0; i < registrations.length; i++) {
-          if (registrations[i] === this) {
-            registrations.splice(i, 1);
-            break;
-          }
-        }
-      }, this);
-    },
-    handleEvent: function handleEvent(e) {
-      e.stopImmediatePropagation();
-      switch (e.type) {
-        case "DOMAttrModified":
-          var name = e.attrName;
-          var namespace = e.relatedNode.namespaceURI;
-          var target = e.target;
-          var record = new getRecord("attributes", target);
-          record.attributeName = name;
-          record.attributeNamespace = namespace;
-          var oldValue = e.attrChange === MutationEvent.ADDITION ? null : e.prevValue;
-          forEachAncestorAndObserverEnqueueRecord(target, function (options) {
-            if (!options.attributes) return;
-            if (options.attributeFilter && options.attributeFilter.length && options.attributeFilter.indexOf(name) === -1 && options.attributeFilter.indexOf(namespace) === -1) {
-              return;
-            }
-            if (options.attributeOldValue) return getRecordWithOldValue(oldValue);
-            return record;
-          });
-          break;
-
-        case "DOMCharacterDataModified":
-          var target = e.target;
-          var record = getRecord("characterData", target);
-          var oldValue = e.prevValue;
-          forEachAncestorAndObserverEnqueueRecord(target, function (options) {
-            if (!options.characterData) return;
-            if (options.characterDataOldValue) return getRecordWithOldValue(oldValue);
-            return record;
-          });
-          break;
-
-        case "DOMNodeRemoved":
-          this.addTransientObserver(e.target);
-
-        case "DOMNodeInserted":
-          var changedNode = e.target;
-          var addedNodes, removedNodes;
-          if (e.type === "DOMNodeInserted") {
-            addedNodes = [changedNode];
-            removedNodes = [];
-          } else {
-            addedNodes = [];
-            removedNodes = [changedNode];
-          }
-          var previousSibling = changedNode.previousSibling;
-          var nextSibling = changedNode.nextSibling;
-          var record = getRecord("childList", e.target.parentNode);
-          record.addedNodes = addedNodes;
-          record.removedNodes = removedNodes;
-          record.previousSibling = previousSibling;
-          record.nextSibling = nextSibling;
-          forEachAncestorAndObserverEnqueueRecord(e.relatedNode, function (options) {
-            if (!options.childList) return;
-            return record;
-          });
-      }
-      clearRecords();
-    }
-  };
-  global.JsMutationObserver = JsMutationObserver;
-  if (!global.MutationObserver) {
-    global.MutationObserver = JsMutationObserver;
-    JsMutationObserver._isPolyfilled = true;
-  }
-})(self);
-
-(function () {
-  var needsTemplate = typeof HTMLTemplateElement === "undefined";
-  if (/Trident/.test(navigator.userAgent)) {
-    (function () {
-      var importNode = document.importNode;
-      document.importNode = function () {
-        var n = importNode.apply(document, arguments);
-        if (n.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-          var f = document.createDocumentFragment();
-          f.appendChild(n);
-          return f;
-        } else {
-          return n;
-        }
-      };
-    })();
-  }
-  var needsCloning = function () {
-    if (!needsTemplate) {
-      var t = document.createElement("template");
-      var t2 = document.createElement("template");
-      t2.content.appendChild(document.createElement("div"));
-      t.content.appendChild(t2);
-      var clone = t.cloneNode(true);
-      return clone.content.childNodes.length === 0 || clone.content.firstChild.content.childNodes.length === 0;
-    }
-  }();
-  var TEMPLATE_TAG = "template";
-  var TemplateImpl = function TemplateImpl() {};
-  if (needsTemplate) {
-    var contentDoc;
-    var canDecorate;
-    var templateStyle;
-    var head;
-    var createElement;
-    var escapeDataRegExp;
-
-    (function () {
-      var escapeReplace = function escapeReplace(c) {
-        switch (c) {
-          case "&":
-            return "&amp;";
-
-          case "<":
-            return "&lt;";
-
-          case ">":
-            return "&gt;";
-
-          case " ":
-            return "&nbsp;";
-        }
-      };
-
-      var escapeData = function escapeData(s) {
-        return s.replace(escapeDataRegExp, escapeReplace);
-      };
-
-      contentDoc = document.implementation.createHTMLDocument("template");
-      canDecorate = true;
-      templateStyle = document.createElement("style");
-
-      templateStyle.textContent = TEMPLATE_TAG + "{display:none;}";
-      head = document.head;
-
-      head.insertBefore(templateStyle, head.firstElementChild);
-      TemplateImpl.prototype = Object.create(HTMLElement.prototype);
-      TemplateImpl.decorate = function (template) {
-        if (template.content) {
-          return;
-        }
-        template.content = contentDoc.createDocumentFragment();
-        var child;
-        while (child = template.firstChild) {
-          template.content.appendChild(child);
-        }
-        template.cloneNode = function (deep) {
-          return TemplateImpl.cloneNode(this, deep);
-        };
-        if (canDecorate) {
-          try {
-            Object.defineProperty(template, "innerHTML", {
-              get: function get() {
-                var o = "";
-                for (var e = this.content.firstChild; e; e = e.nextSibling) {
-                  o += e.outerHTML || escapeData(e.data);
-                }
-                return o;
-              },
-              set: function set(text) {
-                contentDoc.body.innerHTML = text;
-                TemplateImpl.bootstrap(contentDoc);
-                while (this.content.firstChild) {
-                  this.content.removeChild(this.content.firstChild);
-                }
-                while (contentDoc.body.firstChild) {
-                  this.content.appendChild(contentDoc.body.firstChild);
-                }
-              },
-              configurable: true
-            });
-          } catch (err) {
-            canDecorate = false;
-          }
-        }
-        TemplateImpl.bootstrap(template.content);
-      };
-      TemplateImpl.bootstrap = function (doc) {
-        var templates = doc.querySelectorAll(TEMPLATE_TAG);
-        for (var i = 0, l = templates.length, t; i < l && (t = templates[i]); i++) {
-          TemplateImpl.decorate(t);
-        }
-      };
-      document.addEventListener("DOMContentLoaded", function () {
-        TemplateImpl.bootstrap(document);
-      });
-      createElement = document.createElement;
-
-      document.createElement = function () {
-        "use strict";
-
-        var el = createElement.apply(document, arguments);
-        if (el.localName === "template") {
-          TemplateImpl.decorate(el);
-        }
-        return el;
-      };
-      escapeDataRegExp = /[&\u00A0<>]/g;
-    })();
-  }
-  if (needsTemplate || needsCloning) {
-    var nativeCloneNode = Node.prototype.cloneNode;
-    TemplateImpl.cloneNode = function (template, deep) {
-      var clone = nativeCloneNode.call(template, false);
-      if (this.decorate) {
-        this.decorate(clone);
-      }
-      if (deep) {
-        clone.content.appendChild(nativeCloneNode.call(template.content, true));
-        this.fixClonedDom(clone.content, template.content);
-      }
-      return clone;
-    };
-    TemplateImpl.fixClonedDom = function (clone, source) {
-      if (!source.querySelectorAll) return;
-      var s$ = source.querySelectorAll(TEMPLATE_TAG);
-      var t$ = clone.querySelectorAll(TEMPLATE_TAG);
-      for (var i = 0, l = t$.length, t, s; i < l; i++) {
-        s = s$[i];
-        t = t$[i];
-        if (this.decorate) {
-          this.decorate(s);
-        }
-        t.parentNode.replaceChild(s.cloneNode(true), t);
-      }
-    };
-    var originalImportNode = document.importNode;
-    Node.prototype.cloneNode = function (deep) {
-      var dom = nativeCloneNode.call(this, deep);
-      if (deep) {
-        TemplateImpl.fixClonedDom(dom, this);
-      }
-      return dom;
-    };
-    document.importNode = function (element, deep) {
-      if (element.localName === TEMPLATE_TAG) {
-        return TemplateImpl.cloneNode(element, deep);
-      } else {
-        var dom = originalImportNode.call(document, element, deep);
-        if (deep) {
-          TemplateImpl.fixClonedDom(dom, element);
-        }
-        return dom;
-      }
-    };
-    if (needsCloning) {
-      HTMLTemplateElement.prototype.cloneNode = function (deep) {
-        return TemplateImpl.cloneNode(this, deep);
-      };
-    }
-  }
-  if (needsTemplate) {
-    window.HTMLTemplateElement = TemplateImpl;
-  }
-})();
-
-(function (scope) {
-  "use strict";
-
-  if (!window.performance) {
-    var start = Date.now();
-    window.performance = {
-      now: function now() {
-        return Date.now() - start;
-      }
-    };
-  }
-  if (!window.requestAnimationFrame) {
-    window.requestAnimationFrame = function () {
-      var nativeRaf = window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame;
-      return nativeRaf ? function (callback) {
-        return nativeRaf(function () {
-          callback(performance.now());
-        });
-      } : function (callback) {
-        return window.setTimeout(callback, 1e3 / 60);
-      };
-    }();
-  }
-  if (!window.cancelAnimationFrame) {
-    window.cancelAnimationFrame = function () {
-      return window.webkitCancelAnimationFrame || window.mozCancelAnimationFrame || function (id) {
-        clearTimeout(id);
-      };
-    }();
-  }
-  var workingDefaultPrevented = function () {
-    var e = document.createEvent("Event");
-    e.initEvent("foo", true, true);
-    e.preventDefault();
-    return e.defaultPrevented;
-  }();
-  if (!workingDefaultPrevented) {
-    var origPreventDefault = Event.prototype.preventDefault;
-    Event.prototype.preventDefault = function () {
-      if (!this.cancelable) {
-        return;
-      }
-      origPreventDefault.call(this);
-      Object.defineProperty(this, "defaultPrevented", {
-        get: function get() {
-          return true;
-        },
-        configurable: true
-      });
-    };
-  }
-  var isIE = /Trident/.test(navigator.userAgent);
-  if (!window.CustomEvent || isIE && typeof window.CustomEvent !== "function") {
-    window.CustomEvent = function (inType, params) {
-      params = params || {};
-      var e = document.createEvent("CustomEvent");
-      e.initCustomEvent(inType, Boolean(params.bubbles), Boolean(params.cancelable), params.detail);
-      return e;
-    };
-    window.CustomEvent.prototype = window.Event.prototype;
-  }
-  if (!window.Event || isIE && typeof window.Event !== "function") {
-    var origEvent = window.Event;
-    window.Event = function (inType, params) {
-      params = params || {};
-      var e = document.createEvent("Event");
-      e.initEvent(inType, Boolean(params.bubbles), Boolean(params.cancelable));
-      return e;
-    };
-    window.Event.prototype = origEvent.prototype;
-  }
-})(window.WebComponents);
-
-window.HTMLImports = window.HTMLImports || {
-  flags: {}
-};
-
-(function (scope) {
-  var IMPORT_LINK_TYPE = "import";
-  var useNative = Boolean(IMPORT_LINK_TYPE in document.createElement("link"));
-  var hasShadowDOMPolyfill = Boolean(window.ShadowDOMPolyfill);
-  var wrap = function wrap(node) {
-    return hasShadowDOMPolyfill ? window.ShadowDOMPolyfill.wrapIfNeeded(node) : node;
-  };
-  var rootDocument = wrap(document);
-  var currentScriptDescriptor = {
-    get: function get() {
-      var script = window.HTMLImports.currentScript || document.currentScript || (document.readyState !== "complete" ? document.scripts[document.scripts.length - 1] : null);
-      return wrap(script);
-    },
-    configurable: true
-  };
-  Object.defineProperty(document, "_currentScript", currentScriptDescriptor);
-  Object.defineProperty(rootDocument, "_currentScript", currentScriptDescriptor);
-  var isIE = /Trident/.test(navigator.userAgent);
-  function whenReady(callback, doc) {
-    doc = doc || rootDocument;
-    whenDocumentReady(function () {
-      watchImportsLoad(callback, doc);
-    }, doc);
-  }
-  var requiredReadyState = isIE ? "complete" : "interactive";
-  var READY_EVENT = "readystatechange";
-  function isDocumentReady(doc) {
-    return doc.readyState === "complete" || doc.readyState === requiredReadyState;
-  }
-  function whenDocumentReady(callback, doc) {
-    if (!isDocumentReady(doc)) {
-      var checkReady = function checkReady() {
-        if (doc.readyState === "complete" || doc.readyState === requiredReadyState) {
-          doc.removeEventListener(READY_EVENT, checkReady);
-          whenDocumentReady(callback, doc);
-        }
-      };
-      doc.addEventListener(READY_EVENT, checkReady);
-    } else if (callback) {
-      callback();
-    }
-  }
-  function markTargetLoaded(event) {
-    event.target.__loaded = true;
-  }
-  function watchImportsLoad(callback, doc) {
-    var imports = doc.querySelectorAll("link[rel=import]");
-    var parsedCount = 0,
-        importCount = imports.length,
-        newImports = [],
-        errorImports = [];
-    function checkDone() {
-      if (parsedCount == importCount && callback) {
-        callback({
-          allImports: imports,
-          loadedImports: newImports,
-          errorImports: errorImports
-        });
-      }
-    }
-    function loadedImport(e) {
-      markTargetLoaded(e);
-      newImports.push(this);
-      parsedCount++;
-      checkDone();
-    }
-    function errorLoadingImport(e) {
-      errorImports.push(this);
-      parsedCount++;
-      checkDone();
-    }
-    if (importCount) {
-      for (var i = 0, imp; i < importCount && (imp = imports[i]); i++) {
-        if (isImportLoaded(imp)) {
-          newImports.push(this);
-          parsedCount++;
-          checkDone();
-        } else {
-          imp.addEventListener("load", loadedImport);
-          imp.addEventListener("error", errorLoadingImport);
-        }
-      }
-    } else {
-      checkDone();
-    }
-  }
-  function isImportLoaded(link) {
-    return useNative ? link.__loaded || link.import && link.import.readyState !== "loading" : link.__importParsed;
-  }
-  if (useNative) {
-    (function () {
-      var handleImports = function handleImports(nodes) {
-        for (var i = 0, l = nodes.length, n; i < l && (n = nodes[i]); i++) {
-          if (isImport(n)) {
-            handleImport(n);
-          }
-        }
-      };
-
-      var isImport = function isImport(element) {
-        return element.localName === "link" && element.rel === "import";
-      };
-
-      var handleImport = function handleImport(element) {
-        var loaded = element.import;
-        if (loaded) {
-          markTargetLoaded({
-            target: element
-          });
-        } else {
-          element.addEventListener("load", markTargetLoaded);
-          element.addEventListener("error", markTargetLoaded);
-        }
-      };
-
-      new MutationObserver(function (mxns) {
-        for (var i = 0, l = mxns.length, m; i < l && (m = mxns[i]); i++) {
-          if (m.addedNodes) {
-            handleImports(m.addedNodes);
-          }
-        }
-      }).observe(document.head, {
-        childList: true
-      });
-
-      (function () {
-        if (document.readyState === "loading") {
-          var imports = document.querySelectorAll("link[rel=import]");
-          for (var i = 0, l = imports.length, imp; i < l && (imp = imports[i]); i++) {
-            handleImport(imp);
-          }
-        }
-      })();
-    })();
-  }
-  whenReady(function (detail) {
-    window.HTMLImports.ready = true;
-    window.HTMLImports.readyTime = new Date().getTime();
-    var evt = rootDocument.createEvent("CustomEvent");
-    evt.initCustomEvent("HTMLImportsLoaded", true, true, detail);
-    rootDocument.dispatchEvent(evt);
-  });
-  scope.IMPORT_LINK_TYPE = IMPORT_LINK_TYPE;
-  scope.useNative = useNative;
-  scope.rootDocument = rootDocument;
-  scope.whenReady = whenReady;
-  scope.isIE = isIE;
-})(window.HTMLImports);
-
-(function (scope) {
-  var modules = [];
-  var addModule = function addModule(module) {
-    modules.push(module);
-  };
-  var initializeModules = function initializeModules() {
-    modules.forEach(function (module) {
-      module(scope);
-    });
-  };
-  scope.addModule = addModule;
-  scope.initializeModules = initializeModules;
-})(window.HTMLImports);
-
-window.HTMLImports.addModule(function (scope) {
-  var CSS_URL_REGEXP = /(url\()([^)]*)(\))/g;
-  var CSS_IMPORT_REGEXP = /(@import[\s]+(?!url\())([^;]*)(;)/g;
-  var path = {
-    resolveUrlsInStyle: function resolveUrlsInStyle(style, linkUrl) {
-      var doc = style.ownerDocument;
-      var resolver = doc.createElement("a");
-      style.textContent = this.resolveUrlsInCssText(style.textContent, linkUrl, resolver);
-      return style;
-    },
-    resolveUrlsInCssText: function resolveUrlsInCssText(cssText, linkUrl, urlObj) {
-      var r = this.replaceUrls(cssText, urlObj, linkUrl, CSS_URL_REGEXP);
-      r = this.replaceUrls(r, urlObj, linkUrl, CSS_IMPORT_REGEXP);
-      return r;
-    },
-    replaceUrls: function replaceUrls(text, urlObj, linkUrl, regexp) {
-      return text.replace(regexp, function (m, pre, url, post) {
-        var urlPath = url.replace(/["']/g, "");
-        if (linkUrl) {
-          urlPath = new URL(urlPath, linkUrl).href;
-        }
-        urlObj.href = urlPath;
-        urlPath = urlObj.href;
-        return pre + "'" + urlPath + "'" + post;
-      });
-    }
-  };
-  scope.path = path;
-});
-
-window.HTMLImports.addModule(function (scope) {
-  var xhr = {
-    async: true,
-    ok: function ok(request) {
-      return request.status >= 200 && request.status < 300 || request.status === 304 || request.status === 0;
-    },
-    load: function load(url, next, nextContext) {
-      var request = new XMLHttpRequest();
-      if (scope.flags.debug || scope.flags.bust) {
-        url += "?" + Math.random();
-      }
-      request.open("GET", url, xhr.async);
-      request.addEventListener("readystatechange", function (e) {
-        if (request.readyState === 4) {
-          var redirectedUrl = null;
-          try {
-            var locationHeader = request.getResponseHeader("Location");
-            if (locationHeader) {
-              redirectedUrl = locationHeader.substr(0, 1) === "/" ? location.origin + locationHeader : locationHeader;
-            }
-          } catch (e) {
-            console.error(e.message);
-          }
-          next.call(nextContext, !xhr.ok(request) && request, request.response || request.responseText, redirectedUrl);
-        }
-      });
-      request.send();
-      return request;
-    },
-    loadDocument: function loadDocument(url, next, nextContext) {
-      this.load(url, next, nextContext).responseType = "document";
-    }
-  };
-  scope.xhr = xhr;
-});
-
-window.HTMLImports.addModule(function (scope) {
-  var xhr = scope.xhr;
-  var flags = scope.flags;
-  var Loader = function Loader(onLoad, onComplete) {
-    this.cache = {};
-    this.onload = onLoad;
-    this.oncomplete = onComplete;
-    this.inflight = 0;
-    this.pending = {};
-  };
-  Loader.prototype = {
-    addNodes: function addNodes(nodes) {
-      this.inflight += nodes.length;
-      for (var i = 0, l = nodes.length, n; i < l && (n = nodes[i]); i++) {
-        this.require(n);
-      }
-      this.checkDone();
-    },
-    addNode: function addNode(node) {
-      this.inflight++;
-      this.require(node);
-      this.checkDone();
-    },
-    require: function require(elt) {
-      var url = elt.src || elt.href;
-      elt.__nodeUrl = url;
-      if (!this.dedupe(url, elt)) {
-        this.fetch(url, elt);
-      }
-    },
-    dedupe: function dedupe(url, elt) {
-      if (this.pending[url]) {
-        this.pending[url].push(elt);
-        return true;
-      }
-      var resource;
-      if (this.cache[url]) {
-        this.onload(url, elt, this.cache[url]);
-        this.tail();
-        return true;
-      }
-      this.pending[url] = [elt];
-      return false;
-    },
-    fetch: function fetch(url, elt) {
-      flags.load && console.log("fetch", url, elt);
-      if (!url) {
-        setTimeout(function () {
-          this.receive(url, elt, {
-            error: "href must be specified"
-          }, null);
-        }.bind(this), 0);
-      } else if (url.match(/^data:/)) {
-        var pieces = url.split(",");
-        var header = pieces[0];
-        var body = pieces[1];
-        if (header.indexOf(";base64") > -1) {
-          body = atob(body);
-        } else {
-          body = decodeURIComponent(body);
-        }
-        setTimeout(function () {
-          this.receive(url, elt, null, body);
-        }.bind(this), 0);
-      } else {
-        var receiveXhr = function (err, resource, redirectedUrl) {
-          this.receive(url, elt, err, resource, redirectedUrl);
-        }.bind(this);
-        xhr.load(url, receiveXhr);
-      }
-    },
-    receive: function receive(url, elt, err, resource, redirectedUrl) {
-      this.cache[url] = resource;
-      var $p = this.pending[url];
-      for (var i = 0, l = $p.length, p; i < l && (p = $p[i]); i++) {
-        this.onload(url, p, resource, err, redirectedUrl);
-        this.tail();
-      }
-      this.pending[url] = null;
-    },
-    tail: function tail() {
-      --this.inflight;
-      this.checkDone();
-    },
-    checkDone: function checkDone() {
-      if (!this.inflight) {
-        this.oncomplete();
-      }
-    }
-  };
-  scope.Loader = Loader;
-});
-
-window.HTMLImports.addModule(function (scope) {
-  var Observer = function Observer(addCallback) {
-    this.addCallback = addCallback;
-    this.mo = new MutationObserver(this.handler.bind(this));
-  };
-  Observer.prototype = {
-    handler: function handler(mutations) {
-      for (var i = 0, l = mutations.length, m; i < l && (m = mutations[i]); i++) {
-        if (m.type === "childList" && m.addedNodes.length) {
-          this.addedNodes(m.addedNodes);
-        }
-      }
-    },
-    addedNodes: function addedNodes(nodes) {
-      if (this.addCallback) {
-        this.addCallback(nodes);
-      }
-      for (var i = 0, l = nodes.length, n, loading; i < l && (n = nodes[i]); i++) {
-        if (n.children && n.children.length) {
-          this.addedNodes(n.children);
-        }
-      }
-    },
-    observe: function observe(root) {
-      this.mo.observe(root, {
-        childList: true,
-        subtree: true
-      });
-    }
-  };
-  scope.Observer = Observer;
-});
-
-window.HTMLImports.addModule(function (scope) {
-  var path = scope.path;
-  var rootDocument = scope.rootDocument;
-  var flags = scope.flags;
-  var isIE = scope.isIE;
-  var IMPORT_LINK_TYPE = scope.IMPORT_LINK_TYPE;
-  var IMPORT_SELECTOR = "link[rel=" + IMPORT_LINK_TYPE + "]";
-  var importParser = {
-    documentSelectors: IMPORT_SELECTOR,
-    importsSelectors: [IMPORT_SELECTOR, "link[rel=stylesheet]:not([type])", "style:not([type])", "script:not([type])", 'script[type="application/javascript"]', 'script[type="text/javascript"]'].join(","),
-    map: {
-      link: "parseLink",
-      script: "parseScript",
-      style: "parseStyle"
-    },
-    dynamicElements: [],
-    parseNext: function parseNext() {
-      var next = this.nextToParse();
-      if (next) {
-        this.parse(next);
-      }
-    },
-    parse: function parse(elt) {
-      if (this.isParsed(elt)) {
-        flags.parse && console.log("[%s] is already parsed", elt.localName);
-        return;
-      }
-      var fn = this[this.map[elt.localName]];
-      if (fn) {
-        this.markParsing(elt);
-        fn.call(this, elt);
-      }
-    },
-    parseDynamic: function parseDynamic(elt, quiet) {
-      this.dynamicElements.push(elt);
-      if (!quiet) {
-        this.parseNext();
-      }
-    },
-    markParsing: function markParsing(elt) {
-      flags.parse && console.log("parsing", elt);
-      this.parsingElement = elt;
-    },
-    markParsingComplete: function markParsingComplete(elt) {
-      elt.__importParsed = true;
-      this.markDynamicParsingComplete(elt);
-      if (elt.__importElement) {
-        elt.__importElement.__importParsed = true;
-        this.markDynamicParsingComplete(elt.__importElement);
-      }
-      this.parsingElement = null;
-      flags.parse && console.log("completed", elt);
-    },
-    markDynamicParsingComplete: function markDynamicParsingComplete(elt) {
-      var i = this.dynamicElements.indexOf(elt);
-      if (i >= 0) {
-        this.dynamicElements.splice(i, 1);
-      }
-    },
-    parseImport: function parseImport(elt) {
-      elt.import = elt.__doc;
-      if (window.HTMLImports.__importsParsingHook) {
-        window.HTMLImports.__importsParsingHook(elt);
-      }
-      if (elt.import) {
-        elt.import.__importParsed = true;
-      }
-      this.markParsingComplete(elt);
-      if (elt.__resource && !elt.__error) {
-        elt.dispatchEvent(new CustomEvent("load", {
-          bubbles: false
-        }));
-      } else {
-        elt.dispatchEvent(new CustomEvent("error", {
-          bubbles: false
-        }));
-      }
-      if (elt.__pending) {
-        var fn;
-        while (elt.__pending.length) {
-          fn = elt.__pending.shift();
-          if (fn) {
-            fn({
-              target: elt
-            });
-          }
-        }
-      }
-      this.parseNext();
-    },
-    parseLink: function parseLink(linkElt) {
-      if (nodeIsImport(linkElt)) {
-        this.parseImport(linkElt);
-      } else {
-        linkElt.href = linkElt.href;
-        this.parseGeneric(linkElt);
-      }
-    },
-    parseStyle: function parseStyle(elt) {
-      var src = elt;
-      elt = cloneStyle(elt);
-      src.__appliedElement = elt;
-      elt.__importElement = src;
-      this.parseGeneric(elt);
-    },
-    parseGeneric: function parseGeneric(elt) {
-      this.trackElement(elt);
-      this.addElementToDocument(elt);
-    },
-    rootImportForElement: function rootImportForElement(elt) {
-      var n = elt;
-      while (n.ownerDocument.__importLink) {
-        n = n.ownerDocument.__importLink;
-      }
-      return n;
-    },
-    addElementToDocument: function addElementToDocument(elt) {
-      var port = this.rootImportForElement(elt.__importElement || elt);
-      port.parentNode.insertBefore(elt, port);
-    },
-    trackElement: function trackElement(elt, callback) {
-      var self = this;
-      var done = function done(e) {
-        elt.removeEventListener("load", done);
-        elt.removeEventListener("error", done);
-        if (callback) {
-          callback(e);
-        }
-        self.markParsingComplete(elt);
-        self.parseNext();
-      };
-      elt.addEventListener("load", done);
-      elt.addEventListener("error", done);
-      if (isIE && elt.localName === "style") {
-        var fakeLoad = false;
-        if (elt.textContent.indexOf("@import") == -1) {
-          fakeLoad = true;
-        } else if (elt.sheet) {
-          fakeLoad = true;
-          var csr = elt.sheet.cssRules;
-          var len = csr ? csr.length : 0;
-          for (var i = 0, r; i < len && (r = csr[i]); i++) {
-            if (r.type === CSSRule.IMPORT_RULE) {
-              fakeLoad = fakeLoad && Boolean(r.styleSheet);
-            }
-          }
-        }
-        if (fakeLoad) {
-          setTimeout(function () {
-            elt.dispatchEvent(new CustomEvent("load", {
-              bubbles: false
-            }));
-          });
-        }
-      }
-    },
-    parseScript: function parseScript(scriptElt) {
-      var script = document.createElement("script");
-      script.__importElement = scriptElt;
-      script.src = scriptElt.src ? scriptElt.src : generateScriptDataUrl(scriptElt);
-      scope.currentScript = scriptElt;
-      this.trackElement(script, function (e) {
-        if (script.parentNode) {
-          script.parentNode.removeChild(script);
-        }
-        scope.currentScript = null;
-      });
-      this.addElementToDocument(script);
-    },
-    nextToParse: function nextToParse() {
-      this._mayParse = [];
-      return !this.parsingElement && (this.nextToParseInDoc(rootDocument) || this.nextToParseDynamic());
-    },
-    nextToParseInDoc: function nextToParseInDoc(doc, link) {
-      if (doc && this._mayParse.indexOf(doc) < 0) {
-        this._mayParse.push(doc);
-        var nodes = doc.querySelectorAll(this.parseSelectorsForNode(doc));
-        for (var i = 0, l = nodes.length, n; i < l && (n = nodes[i]); i++) {
-          if (!this.isParsed(n)) {
-            if (this.hasResource(n)) {
-              return nodeIsImport(n) ? this.nextToParseInDoc(n.__doc, n) : n;
-            } else {
-              return;
-            }
-          }
-        }
-      }
-      return link;
-    },
-    nextToParseDynamic: function nextToParseDynamic() {
-      return this.dynamicElements[0];
-    },
-    parseSelectorsForNode: function parseSelectorsForNode(node) {
-      var doc = node.ownerDocument || node;
-      return doc === rootDocument ? this.documentSelectors : this.importsSelectors;
-    },
-    isParsed: function isParsed(node) {
-      return node.__importParsed;
-    },
-    needsDynamicParsing: function needsDynamicParsing(elt) {
-      return this.dynamicElements.indexOf(elt) >= 0;
-    },
-    hasResource: function hasResource(node) {
-      if (nodeIsImport(node) && node.__doc === undefined) {
-        return false;
-      }
-      return true;
-    }
-  };
-  function nodeIsImport(elt) {
-    return elt.localName === "link" && elt.rel === IMPORT_LINK_TYPE;
-  }
-  function generateScriptDataUrl(script) {
-    var scriptContent = generateScriptContent(script);
-    return "data:text/javascript;charset=utf-8," + encodeURIComponent(scriptContent);
-  }
-  function generateScriptContent(script) {
-    return script.textContent + generateSourceMapHint(script);
-  }
-  function generateSourceMapHint(script) {
-    var owner = script.ownerDocument;
-    owner.__importedScripts = owner.__importedScripts || 0;
-    var moniker = script.ownerDocument.baseURI;
-    var num = owner.__importedScripts ? "-" + owner.__importedScripts : "";
-    owner.__importedScripts++;
-    return "\n//# sourceURL=" + moniker + num + ".js\n";
-  }
-  function cloneStyle(style) {
-    var clone = style.ownerDocument.createElement("style");
-    clone.textContent = style.textContent;
-    path.resolveUrlsInStyle(clone);
-    return clone;
-  }
-  scope.parser = importParser;
-  scope.IMPORT_SELECTOR = IMPORT_SELECTOR;
-});
-
-window.HTMLImports.addModule(function (scope) {
-  var flags = scope.flags;
-  var IMPORT_LINK_TYPE = scope.IMPORT_LINK_TYPE;
-  var IMPORT_SELECTOR = scope.IMPORT_SELECTOR;
-  var rootDocument = scope.rootDocument;
-  var Loader = scope.Loader;
-  var Observer = scope.Observer;
-  var parser = scope.parser;
-  var importer = {
-    documents: {},
-    documentPreloadSelectors: IMPORT_SELECTOR,
-    importsPreloadSelectors: [IMPORT_SELECTOR].join(","),
-    loadNode: function loadNode(node) {
-      importLoader.addNode(node);
-    },
-    loadSubtree: function loadSubtree(parent) {
-      var nodes = this.marshalNodes(parent);
-      importLoader.addNodes(nodes);
-    },
-    marshalNodes: function marshalNodes(parent) {
-      return parent.querySelectorAll(this.loadSelectorsForNode(parent));
-    },
-    loadSelectorsForNode: function loadSelectorsForNode(node) {
-      var doc = node.ownerDocument || node;
-      return doc === rootDocument ? this.documentPreloadSelectors : this.importsPreloadSelectors;
-    },
-    loaded: function loaded(url, elt, resource, err, redirectedUrl) {
-      flags.load && console.log("loaded", url, elt);
-      elt.__resource = resource;
-      elt.__error = err;
-      if (isImportLink(elt)) {
-        var doc = this.documents[url];
-        if (doc === undefined) {
-          doc = err ? null : makeDocument(resource, redirectedUrl || url);
-          if (doc) {
-            doc.__importLink = elt;
-            this.bootDocument(doc);
-          }
-          this.documents[url] = doc;
-        }
-        elt.__doc = doc;
-      }
-      parser.parseNext();
-    },
-    bootDocument: function bootDocument(doc) {
-      this.loadSubtree(doc);
-      this.observer.observe(doc);
-      parser.parseNext();
-    },
-    loadedAll: function loadedAll() {
-      parser.parseNext();
-    }
-  };
-  var importLoader = new Loader(importer.loaded.bind(importer), importer.loadedAll.bind(importer));
-  importer.observer = new Observer();
-  function isImportLink(elt) {
-    return isLinkRel(elt, IMPORT_LINK_TYPE);
-  }
-  function isLinkRel(elt, rel) {
-    return elt.localName === "link" && elt.getAttribute("rel") === rel;
-  }
-  function hasBaseURIAccessor(doc) {
-    return !!Object.getOwnPropertyDescriptor(doc, "baseURI");
-  }
-  function makeDocument(resource, url) {
-    var doc = document.implementation.createHTMLDocument(IMPORT_LINK_TYPE);
-    doc._URL = url;
-    var base = doc.createElement("base");
-    base.setAttribute("href", url);
-    if (!doc.baseURI && !hasBaseURIAccessor(doc)) {
-      Object.defineProperty(doc, "baseURI", {
-        value: url
-      });
-    }
-    var meta = doc.createElement("meta");
-    meta.setAttribute("charset", "utf-8");
-    doc.head.appendChild(meta);
-    doc.head.appendChild(base);
-    doc.body.innerHTML = resource;
-    if (window.HTMLTemplateElement && HTMLTemplateElement.bootstrap) {
-      HTMLTemplateElement.bootstrap(doc);
-    }
-    return doc;
-  }
-  if (!document.baseURI) {
-    var baseURIDescriptor = {
-      get: function get() {
-        var base = document.querySelector("base");
-        return base ? base.href : window.location.href;
-      },
-      configurable: true
-    };
-    Object.defineProperty(document, "baseURI", baseURIDescriptor);
-    Object.defineProperty(rootDocument, "baseURI", baseURIDescriptor);
-  }
-  scope.importer = importer;
-  scope.importLoader = importLoader;
-});
-
-window.HTMLImports.addModule(function (scope) {
-  var parser = scope.parser;
-  var importer = scope.importer;
-  var dynamic = {
-    added: function added(nodes) {
-      var owner, parsed, loading;
-      for (var i = 0, l = nodes.length, n; i < l && (n = nodes[i]); i++) {
-        if (!owner) {
-          owner = n.ownerDocument;
-          parsed = parser.isParsed(owner);
-        }
-        loading = this.shouldLoadNode(n);
-        if (loading) {
-          importer.loadNode(n);
-        }
-        if (this.shouldParseNode(n) && parsed) {
-          parser.parseDynamic(n, loading);
-        }
-      }
-    },
-    shouldLoadNode: function shouldLoadNode(node) {
-      return node.nodeType === 1 && matches.call(node, importer.loadSelectorsForNode(node));
-    },
-    shouldParseNode: function shouldParseNode(node) {
-      return node.nodeType === 1 && matches.call(node, parser.parseSelectorsForNode(node));
-    }
-  };
-  importer.observer.addCallback = dynamic.added.bind(dynamic);
-  var matches = HTMLElement.prototype.matches || HTMLElement.prototype.matchesSelector || HTMLElement.prototype.webkitMatchesSelector || HTMLElement.prototype.mozMatchesSelector || HTMLElement.prototype.msMatchesSelector;
-});
-
-(function (scope) {
-  var initializeModules = scope.initializeModules;
-  var isIE = scope.isIE;
-  if (scope.useNative) {
-    return;
-  }
-  initializeModules();
-  var rootDocument = scope.rootDocument;
-  function bootstrap() {
-    window.HTMLImports.importer.bootDocument(rootDocument);
-  }
-  if (document.readyState === "complete" || document.readyState === "interactive" && !window.attachEvent) {
-    bootstrap();
-  } else {
-    document.addEventListener("DOMContentLoaded", bootstrap);
-  }
-})(window.HTMLImports);
-
-window.CustomElements = window.CustomElements || {
-  flags: {}
-};
-
-(function (scope) {
-  var flags = scope.flags;
-  var modules = [];
-  var addModule = function addModule(module) {
-    modules.push(module);
-  };
-  var initializeModules = function initializeModules() {
-    modules.forEach(function (module) {
-      module(scope);
-    });
-  };
-  scope.addModule = addModule;
-  scope.initializeModules = initializeModules;
-  scope.hasNative = Boolean(document.registerElement);
-  scope.isIE = /Trident/.test(navigator.userAgent);
-  scope.useNative = !flags.register && scope.hasNative && !window.ShadowDOMPolyfill && (!window.HTMLImports || window.HTMLImports.useNative);
-})(window.CustomElements);
-
-window.CustomElements.addModule(function (scope) {
-  var IMPORT_LINK_TYPE = window.HTMLImports ? window.HTMLImports.IMPORT_LINK_TYPE : "none";
-  function forSubtree(node, cb) {
-    findAllElements(node, function (e) {
-      if (cb(e)) {
-        return true;
-      }
-      forRoots(e, cb);
-    });
-    forRoots(node, cb);
-  }
-  function findAllElements(node, find, data) {
-    var e = node.firstElementChild;
-    if (!e) {
-      e = node.firstChild;
-      while (e && e.nodeType !== Node.ELEMENT_NODE) {
-        e = e.nextSibling;
-      }
-    }
-    while (e) {
-      if (find(e, data) !== true) {
-        findAllElements(e, find, data);
-      }
-      e = e.nextElementSibling;
-    }
-    return null;
-  }
-  function forRoots(node, cb) {
-    var root = node.shadowRoot;
-    while (root) {
-      forSubtree(root, cb);
-      root = root.olderShadowRoot;
-    }
-  }
-  function forDocumentTree(doc, cb) {
-    _forDocumentTree(doc, cb, []);
-  }
-  function _forDocumentTree(doc, cb, processingDocuments) {
-    doc = window.wrap(doc);
-    if (processingDocuments.indexOf(doc) >= 0) {
-      return;
-    }
-    processingDocuments.push(doc);
-    var imports = doc.querySelectorAll("link[rel=" + IMPORT_LINK_TYPE + "]");
-    for (var i = 0, l = imports.length, n; i < l && (n = imports[i]); i++) {
-      if (n.import) {
-        _forDocumentTree(n.import, cb, processingDocuments);
-      }
-    }
-    cb(doc);
-  }
-  scope.forDocumentTree = forDocumentTree;
-  scope.forSubtree = forSubtree;
-});
-
-window.CustomElements.addModule(function (scope) {
-  var flags = scope.flags;
-  var forSubtree = scope.forSubtree;
-  var forDocumentTree = scope.forDocumentTree;
-  function addedNode(node, isAttached) {
-    return added(node, isAttached) || addedSubtree(node, isAttached);
-  }
-  function added(node, isAttached) {
-    if (scope.upgrade(node, isAttached)) {
-      return true;
-    }
-    if (isAttached) {
-      attached(node);
-    }
-  }
-  function addedSubtree(node, isAttached) {
-    forSubtree(node, function (e) {
-      if (added(e, isAttached)) {
-        return true;
-      }
-    });
-  }
-  var hasThrottledAttached = window.MutationObserver._isPolyfilled && flags["throttle-attached"];
-  scope.hasPolyfillMutations = hasThrottledAttached;
-  scope.hasThrottledAttached = hasThrottledAttached;
-  var isPendingMutations = false;
-  var pendingMutations = [];
-  function deferMutation(fn) {
-    pendingMutations.push(fn);
-    if (!isPendingMutations) {
-      isPendingMutations = true;
-      setTimeout(takeMutations);
-    }
-  }
-  function takeMutations() {
-    isPendingMutations = false;
-    var $p = pendingMutations;
-    for (var i = 0, l = $p.length, p; i < l && (p = $p[i]); i++) {
-      p();
-    }
-    pendingMutations = [];
-  }
-  function attached(element) {
-    if (hasThrottledAttached) {
-      deferMutation(function () {
-        _attached(element);
-      });
-    } else {
-      _attached(element);
-    }
-  }
-  function _attached(element) {
-    if (element.__upgraded__ && !element.__attached) {
-      element.__attached = true;
-      if (element.attachedCallback) {
-        element.attachedCallback();
-      }
-    }
-  }
-  function detachedNode(node) {
-    detached(node);
-    forSubtree(node, function (e) {
-      detached(e);
-    });
-  }
-  function detached(element) {
-    if (hasThrottledAttached) {
-      deferMutation(function () {
-        _detached(element);
-      });
-    } else {
-      _detached(element);
-    }
-  }
-  function _detached(element) {
-    if (element.__upgraded__ && element.__attached) {
-      element.__attached = false;
-      if (element.detachedCallback) {
-        element.detachedCallback();
-      }
-    }
-  }
-  function inDocument(element) {
-    var p = element;
-    var doc = window.wrap(document);
-    while (p) {
-      if (p == doc) {
-        return true;
-      }
-      p = p.parentNode || p.nodeType === Node.DOCUMENT_FRAGMENT_NODE && p.host;
-    }
-  }
-  function watchShadow(node) {
-    if (node.shadowRoot && !node.shadowRoot.__watched) {
-      flags.dom && console.log("watching shadow-root for: ", node.localName);
-      var root = node.shadowRoot;
-      while (root) {
-        observe(root);
-        root = root.olderShadowRoot;
-      }
-    }
-  }
-  function handler(root, mutations) {
-    if (flags.dom) {
-      var mx = mutations[0];
-      if (mx && mx.type === "childList" && mx.addedNodes) {
-        if (mx.addedNodes) {
-          var d = mx.addedNodes[0];
-          while (d && d !== document && !d.host) {
-            d = d.parentNode;
-          }
-          var u = d && (d.URL || d._URL || d.host && d.host.localName) || "";
-          u = u.split("/?").shift().split("/").pop();
-        }
-      }
-      console.group("mutations (%d) [%s]", mutations.length, u || "");
-    }
-    var isAttached = inDocument(root);
-    mutations.forEach(function (mx) {
-      if (mx.type === "childList") {
-        forEach(mx.addedNodes, function (n) {
-          if (!n.localName) {
-            return;
-          }
-          addedNode(n, isAttached);
-        });
-        forEach(mx.removedNodes, function (n) {
-          if (!n.localName) {
-            return;
-          }
-          detachedNode(n);
-        });
-      }
-    });
-    flags.dom && console.groupEnd();
-  }
-  function takeRecords(node) {
-    node = window.wrap(node);
-    if (!node) {
-      node = window.wrap(document);
-    }
-    while (node.parentNode) {
-      node = node.parentNode;
-    }
-    var observer = node.__observer;
-    if (observer) {
-      handler(node, observer.takeRecords());
-      takeMutations();
-    }
-  }
-  var forEach = Array.prototype.forEach.call.bind(Array.prototype.forEach);
-  function observe(inRoot) {
-    if (inRoot.__observer) {
-      return;
-    }
-    var observer = new MutationObserver(handler.bind(this, inRoot));
-    observer.observe(inRoot, {
-      childList: true,
-      subtree: true
-    });
-    inRoot.__observer = observer;
-  }
-  function upgradeDocument(doc) {
-    doc = window.wrap(doc);
-    flags.dom && console.group("upgradeDocument: ", doc.baseURI.split("/").pop());
-    var isMainDocument = doc === window.wrap(document);
-    addedNode(doc, isMainDocument);
-    observe(doc);
-    flags.dom && console.groupEnd();
-  }
-  function upgradeDocumentTree(doc) {
-    forDocumentTree(doc, upgradeDocument);
-  }
-  var originalCreateShadowRoot = Element.prototype.createShadowRoot;
-  if (originalCreateShadowRoot) {
-    Element.prototype.createShadowRoot = function () {
-      var root = originalCreateShadowRoot.call(this);
-      window.CustomElements.watchShadow(this);
-      return root;
-    };
-  }
-  scope.watchShadow = watchShadow;
-  scope.upgradeDocumentTree = upgradeDocumentTree;
-  scope.upgradeDocument = upgradeDocument;
-  scope.upgradeSubtree = addedSubtree;
-  scope.upgradeAll = addedNode;
-  scope.attached = attached;
-  scope.takeRecords = takeRecords;
-});
-
-window.CustomElements.addModule(function (scope) {
-  var flags = scope.flags;
-  function upgrade(node, isAttached) {
-    if (node.localName === "template") {
-      if (window.HTMLTemplateElement && HTMLTemplateElement.decorate) {
-        HTMLTemplateElement.decorate(node);
-      }
-    }
-    if (!node.__upgraded__ && node.nodeType === Node.ELEMENT_NODE) {
-      var is = node.getAttribute("is");
-      var definition = scope.getRegisteredDefinition(node.localName) || scope.getRegisteredDefinition(is);
-      if (definition) {
-        if (is && definition.tag == node.localName || !is && !definition.extends) {
-          return upgradeWithDefinition(node, definition, isAttached);
-        }
-      }
-    }
-  }
-  function upgradeWithDefinition(element, definition, isAttached) {
-    flags.upgrade && console.group("upgrade:", element.localName);
-    if (definition.is) {
-      element.setAttribute("is", definition.is);
-    }
-    implementPrototype(element, definition);
-    element.__upgraded__ = true;
-    created(element);
-    if (isAttached) {
-      scope.attached(element);
-    }
-    scope.upgradeSubtree(element, isAttached);
-    flags.upgrade && console.groupEnd();
-    return element;
-  }
-  function implementPrototype(element, definition) {
-    if (Object.__proto__) {
-      element.__proto__ = definition.prototype;
-    } else {
-      customMixin(element, definition.prototype, definition.native);
-      element.__proto__ = definition.prototype;
-    }
-  }
-  function customMixin(inTarget, inSrc, inNative) {
-    var used = {};
-    var p = inSrc;
-    while (p !== inNative && p !== HTMLElement.prototype) {
-      var keys = Object.getOwnPropertyNames(p);
-      for (var i = 0, k; k = keys[i]; i++) {
-        if (!used[k]) {
-          Object.defineProperty(inTarget, k, Object.getOwnPropertyDescriptor(p, k));
-          used[k] = 1;
-        }
-      }
-      p = Object.getPrototypeOf(p);
-    }
-  }
-  function created(element) {
-    if (element.createdCallback) {
-      element.createdCallback();
-    }
-  }
-  scope.upgrade = upgrade;
-  scope.upgradeWithDefinition = upgradeWithDefinition;
-  scope.implementPrototype = implementPrototype;
-});
-
-window.CustomElements.addModule(function (scope) {
-  var isIE = scope.isIE;
-  var upgradeDocumentTree = scope.upgradeDocumentTree;
-  var upgradeAll = scope.upgradeAll;
-  var upgradeWithDefinition = scope.upgradeWithDefinition;
-  var implementPrototype = scope.implementPrototype;
-  var useNative = scope.useNative;
-  function register(name, options) {
-    var definition = options || {};
-    if (!name) {
-      throw new Error("document.registerElement: first argument `name` must not be empty");
-    }
-    if (name.indexOf("-") < 0) {
-      throw new Error("document.registerElement: first argument ('name') must contain a dash ('-'). Argument provided was '" + String(name) + "'.");
-    }
-    if (isReservedTag(name)) {
-      throw new Error("Failed to execute 'registerElement' on 'Document': Registration failed for type '" + String(name) + "'. The type name is invalid.");
-    }
-    if (getRegisteredDefinition(name)) {
-      throw new Error("DuplicateDefinitionError: a type with name '" + String(name) + "' is already registered");
-    }
-    if (!definition.prototype) {
-      definition.prototype = Object.create(HTMLElement.prototype);
-    }
-    definition.__name = name.toLowerCase();
-    if (definition.extends) {
-      definition.extends = definition.extends.toLowerCase();
-    }
-    definition.lifecycle = definition.lifecycle || {};
-    definition.ancestry = ancestry(definition.extends);
-    resolveTagName(definition);
-    resolvePrototypeChain(definition);
-    overrideAttributeApi(definition.prototype);
-    registerDefinition(definition.__name, definition);
-    definition.ctor = generateConstructor(definition);
-    definition.ctor.prototype = definition.prototype;
-    definition.prototype.constructor = definition.ctor;
-    if (scope.ready) {
-      upgradeDocumentTree(document);
-    }
-    return definition.ctor;
-  }
-  function overrideAttributeApi(prototype) {
-    if (prototype.setAttribute._polyfilled) {
-      return;
-    }
-    var setAttribute = prototype.setAttribute;
-    prototype.setAttribute = function (name, value) {
-      changeAttribute.call(this, name, value, setAttribute);
-    };
-    var removeAttribute = prototype.removeAttribute;
-    prototype.removeAttribute = function (name) {
-      changeAttribute.call(this, name, null, removeAttribute);
-    };
-    prototype.setAttribute._polyfilled = true;
-  }
-  function changeAttribute(name, value, operation) {
-    name = name.toLowerCase();
-    var oldValue = this.getAttribute(name);
-    operation.apply(this, arguments);
-    var newValue = this.getAttribute(name);
-    if (this.attributeChangedCallback && newValue !== oldValue) {
-      this.attributeChangedCallback(name, oldValue, newValue);
-    }
-  }
-  function isReservedTag(name) {
-    for (var i = 0; i < reservedTagList.length; i++) {
-      if (name === reservedTagList[i]) {
-        return true;
-      }
-    }
-  }
-  var reservedTagList = ["annotation-xml", "color-profile", "font-face", "font-face-src", "font-face-uri", "font-face-format", "font-face-name", "missing-glyph"];
-  function ancestry(extnds) {
-    var extendee = getRegisteredDefinition(extnds);
-    if (extendee) {
-      return ancestry(extendee.extends).concat([extendee]);
-    }
-    return [];
-  }
-  function resolveTagName(definition) {
-    var baseTag = definition.extends;
-    for (var i = 0, a; a = definition.ancestry[i]; i++) {
-      baseTag = a.is && a.tag;
-    }
-    definition.tag = baseTag || definition.__name;
-    if (baseTag) {
-      definition.is = definition.__name;
-    }
-  }
-  function resolvePrototypeChain(definition) {
-    if (!Object.__proto__) {
-      var nativePrototype = HTMLElement.prototype;
-      if (definition.is) {
-        var inst = document.createElement(definition.tag);
-        nativePrototype = Object.getPrototypeOf(inst);
-      }
-      var proto = definition.prototype,
-          ancestor;
-      var foundPrototype = false;
-      while (proto) {
-        if (proto == nativePrototype) {
-          foundPrototype = true;
-        }
-        ancestor = Object.getPrototypeOf(proto);
-        if (ancestor) {
-          proto.__proto__ = ancestor;
-        }
-        proto = ancestor;
-      }
-      if (!foundPrototype) {
-        console.warn(definition.tag + " prototype not found in prototype chain for " + definition.is);
-      }
-      definition.native = nativePrototype;
-    }
-  }
-  function instantiate(definition) {
-    return upgradeWithDefinition(domCreateElement(definition.tag), definition);
-  }
-  var registry = {};
-  function getRegisteredDefinition(name) {
-    if (name) {
-      return registry[name.toLowerCase()];
-    }
-  }
-  function registerDefinition(name, definition) {
-    registry[name] = definition;
-  }
-  function generateConstructor(definition) {
-    return function () {
-      return instantiate(definition);
-    };
-  }
-  var HTML_NAMESPACE = "http://www.w3.org/1999/xhtml";
-  function createElementNS(namespace, tag, typeExtension) {
-    if (namespace === HTML_NAMESPACE) {
-      return createElement(tag, typeExtension);
-    } else {
-      return domCreateElementNS(namespace, tag);
-    }
-  }
-  function createElement(tag, typeExtension) {
-    if (tag) {
-      tag = tag.toLowerCase();
-    }
-    if (typeExtension) {
-      typeExtension = typeExtension.toLowerCase();
-    }
-    var definition = getRegisteredDefinition(typeExtension || tag);
-    if (definition) {
-      if (tag == definition.tag && typeExtension == definition.is) {
-        return new definition.ctor();
-      }
-      if (!typeExtension && !definition.is) {
-        return new definition.ctor();
-      }
-    }
-    var element;
-    if (typeExtension) {
-      element = createElement(tag);
-      element.setAttribute("is", typeExtension);
-      return element;
-    }
-    element = domCreateElement(tag);
-    if (tag.indexOf("-") >= 0) {
-      implementPrototype(element, HTMLElement);
-    }
-    return element;
-  }
-  var domCreateElement = document.createElement.bind(document);
-  var domCreateElementNS = document.createElementNS.bind(document);
-  var isInstance;
-  if (!Object.__proto__ && !useNative) {
-    isInstance = function isInstance(obj, ctor) {
-      if (obj instanceof ctor) {
-        return true;
-      }
-      var p = obj;
-      while (p) {
-        if (p === ctor.prototype) {
-          return true;
-        }
-        p = p.__proto__;
-      }
-      return false;
-    };
-  } else {
-    isInstance = function isInstance(obj, base) {
-      return obj instanceof base;
-    };
-  }
-  function wrapDomMethodToForceUpgrade(obj, methodName) {
-    var orig = obj[methodName];
-    obj[methodName] = function () {
-      var n = orig.apply(this, arguments);
-      upgradeAll(n);
-      return n;
-    };
-  }
-  wrapDomMethodToForceUpgrade(Node.prototype, "cloneNode");
-  wrapDomMethodToForceUpgrade(document, "importNode");
-  document.registerElement = register;
-  document.createElement = createElement;
-  document.createElementNS = createElementNS;
-  scope.registry = registry;
-  scope.instanceof = isInstance;
-  scope.reservedTagList = reservedTagList;
-  scope.getRegisteredDefinition = getRegisteredDefinition;
-  document.register = document.registerElement;
-});
-
-(function (scope) {
-  var useNative = scope.useNative;
-  var initializeModules = scope.initializeModules;
-  var isIE = scope.isIE;
-  if (useNative) {
-    var nop = function nop() {};
-    scope.watchShadow = nop;
-    scope.upgrade = nop;
-    scope.upgradeAll = nop;
-    scope.upgradeDocumentTree = nop;
-    scope.upgradeSubtree = nop;
-    scope.takeRecords = nop;
-    scope.instanceof = function (obj, base) {
-      return obj instanceof base;
-    };
-  } else {
-    initializeModules();
-  }
-  var upgradeDocumentTree = scope.upgradeDocumentTree;
-  var upgradeDocument = scope.upgradeDocument;
-  if (!window.wrap) {
-    if (window.ShadowDOMPolyfill) {
-      window.wrap = window.ShadowDOMPolyfill.wrapIfNeeded;
-      window.unwrap = window.ShadowDOMPolyfill.unwrapIfNeeded;
-    } else {
-      window.wrap = window.unwrap = function (node) {
-        return node;
-      };
-    }
-  }
-  if (window.HTMLImports) {
-    window.HTMLImports.__importsParsingHook = function (elt) {
-      if (elt.import) {
-        upgradeDocument(wrap(elt.import));
-      }
-    };
-  }
-  function bootstrap() {
-    upgradeDocumentTree(window.wrap(document));
-    window.CustomElements.ready = true;
-    var requestAnimationFrame = window.requestAnimationFrame || function (f) {
-      setTimeout(f, 16);
-    };
-    requestAnimationFrame(function () {
-      setTimeout(function () {
-        window.CustomElements.readyTime = Date.now();
-        if (window.HTMLImports) {
-          window.CustomElements.elapsed = window.CustomElements.readyTime - window.HTMLImports.readyTime;
-        }
-        document.dispatchEvent(new CustomEvent("WebComponentsReady", {
-          bubbles: true
-        }));
-      });
-    });
-  }
-  if (document.readyState === "complete" || scope.flags.eager) {
-    bootstrap();
-  } else if (document.readyState === "interactive" && !window.attachEvent && (!window.HTMLImports || window.HTMLImports.ready)) {
-    bootstrap();
-  } else {
-    var loadEvent = window.HTMLImports && !window.HTMLImports.ready ? "HTMLImportsLoaded" : "DOMContentLoaded";
-    window.addEventListener(loadEvent, bootstrap);
-  }
-})(window.CustomElements);
-
-(function (scope) {
-  var style = document.createElement("style");
-  style.textContent = "" + "body {" + "transition: opacity ease-in 0.2s;" + " } \n" + "body[unresolved] {" + "opacity: 0; display: block; overflow: hidden; position: relative;" + " } \n";
-  var head = document.querySelector("head");
-  head.insertBefore(style, head.firstChild);
-})(window.WebComponents);
-
-},{}],56:[function(require,module,exports){
+},{"razilobind-alterer":2,"razilobind-binder":13,"razilobind-core":35,"razilobind-resolver":41}],52:[function(require,module,exports){
 'use strict';
 
 exports.__esModule = true;
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+var _core = require('./src/core.js');
+
+var _core2 = _interopRequireDefault(_core);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+// import ObjectAssign from 'object-assign'
+
+var RaziloComponent = function () {
+	function RaziloComponent(name, extbp, bp) {
+		_classCallCheck(this, RaziloComponent);
+
+		var isString = typeof extbp === 'string';
+		this.register(name, isString ? extbp : null, isString ? bp : extbp, document._currentScript.ownerDocument);
+	}
+
+	/**
+  * Register New Component
+  */
+
+
+	RaziloComponent.prototype.register = function register(name, ext, bp, component) {
+		for (var key in bp) {
+			this[key] = bp[key];
+		}return _core2.default.registerElement(this, name, ext, component);
+	};
+
+	/**
+  * Fires an event off from the components element
+  * @param string name The name of the event
+  * @param mixed detail [optional] Any optional details you wish to send
+  */
+	// fireEvent(name, detail) return function )
+
+	/**
+  * Get the current working root element (the host) (generated on bind to preserve element)
+  */
+	// getHost() { returns host }
+
+	/**
+  * Clone object without reference
+  */
+	// cloneObject() { returns host }
+
+	/**
+  * Custom element created, but not currently on dom
+  */
+	// OPTIONAL created() { }
+
+	/**
+  * Custom element attached to dom
+  */
+	// OPTIONAL attached() { }
+
+	/**
+  * Custom element detached from dom
+  */
+	// OPTIONAL detached() { }
+
+	/**
+  * Custom element atttibute has changed somehow
+  * @param string name The name of the attribute added, removed or changed
+  * @param string oldVal The old value of the attribute.
+  * @param string newVal The new value of the attribute.
+  */
+	// OPTIONAL attributeChanged(name, oldVal, newVal) { }
+
+
+	return RaziloComponent;
+}();
+
+exports.default = RaziloComponent;
+
+},{"./src/core.js":53}],53:[function(require,module,exports){
+'use strict';
+
+exports.__esModule = true;
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var _razilobind = require('razilobind');
 
@@ -8301,4 +4584,4 @@ var Core = function () {
 
 exports.default = Core;
 
-},{"razilobind":54,"razilobind-core":38}]},{},[1])
+},{"razilobind":51,"razilobind-core":35}]},{},[1])
