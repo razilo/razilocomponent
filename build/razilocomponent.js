@@ -2617,14 +2617,19 @@ var Core = function () {
 			if (typeof model.length === 'undefined') {
 				var xPath = path.substring(0, path.length - pathEnd.length - 1);
 				var xAction = typeof oldV === 'undefined' ? 'object-add' : 'object-remove';
-				if (typeof this.traverser.observables[xPath] !== 'undefined') for (var key in this.traverser.observables[xPath]) {
-					this.traverser.observables[xPath][key].update(oldV, xPath, xAction, pathEnd);
-				}
+				this.cascade(oldV, xPath, xAction, pathEnd);
 			}
 		}
 
-		if (typeof this.traverser.observables[path] !== 'undefined') for (var _key in this.traverser.observables[path]) {
-			this.traverser.observables[path][_key].update(oldV, path, action);
+		this.cascade(oldV, path, action);
+	};
+
+	Core.prototype.cascade = function cascade(oldV, path, action, pathEnd) {
+		// ensure we cascade any changes back down the tree for objects and arrays
+		while (path.length > 0) {
+			if (typeof this.traverser.observables[path] !== 'undefined') for (var key in this.traverser.observables[path]) {
+				this.traverser.observables[path][key].update(oldV, path, action, pathEnd);
+			}path = path.substring(0, path.lastIndexOf("."));
 		}
 	};
 
@@ -4004,12 +4009,12 @@ var PropertyResolver = function (_Resolver) {
 				if (/^\[\s*[0-9]+\s*\]$/.test(values[ii])) {
 					// index
 					var key = parseInt(values[ii].replace(/\[|\]/g, '').trim());
-					result = result[key];
+					result = !result ? undefined : result[key];
 					observable += '.' + key;
 				} else if (/^\[\s*\'(.*)\'\s*\]$/.test(values[ii])) {
 					// key
 					var _key = values[ii].replace(/\'|\[|\]/g, '').trim();
-					result = result[_key];
+					result = !result ? undefined : result[_key];
 					observable += '.' + _key;
 				} else if (_phantomResolver2.default.regex().test(values[ii].substring(1, values[ii].length - 1))) {
 					var phRes = _phantomResolver2.default.toProperty(values[ii].substring(1, values[ii].length - 1), object, node);
@@ -4018,18 +4023,18 @@ var PropertyResolver = function (_Resolver) {
 					observers = _resolver2.default.mergeObservers(observers, phRes.observers);
 				} else {
 					var propRes = PropertyResolver.toProperty(values[ii].substring(1, values[ii].length - 1), object, node);
-					result = propRes.resolved ? result[propRes.resolved] : undefined;
+					result = propRes.resolved && result ? result[propRes.resolved] : undefined;
 					observable += '.' + propRes.resolved;
 					observers = _resolver2.default.mergeObservers(observers, propRes.observers);
 				}
 			} else {
 				result = result ? result[values[ii]] : undefined; // removing array items
-				if (typeof result !== 'undefined') observable += '.' + values[ii];
+				observable += '.' + values[ii];
 			}
-		}
 
-		// compact observable path to any other observables found
-		if (observable) observers.push(observable.charAt(0) === '.' ? observable.substring(1, observable.length) : observable);
+			// compact observable path to any other observables found
+			if (observable) observers.push(observable.charAt(0) === '.' ? observable.substring(1, observable.length) : observable);
+		}
 
 		return { resolved: result, observers: observers };
 	};
