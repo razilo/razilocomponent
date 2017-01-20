@@ -3865,7 +3865,6 @@ var PhantomResolver = function (_Resolver) {
 			if (sniffed.phantom && (!sniffed.phantom.valueName || sniffed.phantom.valueName == data)) break;
 			sniffed = sniffed.parentNode;
 		}
-
 		if (!sniffed || !sniffed.phantom) return result;
 
 		// resolve key and value names, else default (force $ in front)
@@ -3875,27 +3874,32 @@ var PhantomResolver = function (_Resolver) {
 		if (valueName.indexOf('$') !== 0) valueName = '$' + valueName;
 
 		// lets resolve phantom data name, check first part of data for phantom name
-		var pName = data.split(/\.|\[/)[0];
+		var pName = data;
 
 		// now we can analyse it and turn it into the actual object path if needed
-		if (pName == keyName) result.resolved = sniffed.phantom.iterationKey;else if (pName == valueName) {
-			// if observers, resolve result.resolved to live value, else use one time value
-			if (sniffed.phantom.observers.length > 0) {
-				// clone observers, ensure root is changed to reflect itterable (last one in stack)
-				for (var key in sniffed.phantom.observers) {
-					result.observers.push(sniffed.phantom.observers[key]);
-				}result.observers[result.observers.length - 1] = result.observers[result.observers.length - 1] + '.' + sniffed.phantom.iterationKey;
+		if (pName == keyName) {
+			result.resolved = sniffed.phantom.iterationKey;
+		} else {
+			var temp = data.split(/\.|\[/);
+			temp.shift();
+			temp = temp.join('.');
 
-				// convert phantom to property iteration and resolve
-				var propRes = _propertyResolver2.default.toProperty(result.observers[result.observers.length - 1] + data.substring(pName.length, data.length), object);
+			var cache = -1;
+			var name = '';
+			for (var key in sniffed.phantom.observers) {
+				var c = sniffed.phantom.observers[key].match(/\./g) ? sniffed.phantom.observers[key].match(/\./g).length : 0;
+				name = c > cache ? sniffed.phantom.observers[key] : name;
+				cache = c > cache ? c : cache;
+				result.observers.push(sniffed.phantom.observers[key]);
+			}
+			result.observers.push(name + '.' + sniffed.phantom.iterationKey);
 
-				result.resolved = typeof propRes.resolved !== 'undefined' ? propRes.resolved : undefined;
-				if (propRes.observers.length > 0) {
-					for (var key2 in propRes.observers) {
-						if (result.observers.indexOf(propRes.observers[key2]) < 0) result.observers.push(propRes.observers[key2]);
-					}
-				}
-			} else result.resolved = sniffed.phantom.initialValue; // fugees (one-time!)
+			var propRes = _propertyResolver2.default.toProperty(name + '.' + sniffed.phantom.iterationKey, object);
+			result.resolved = typeof propRes.resolved !== 'undefined' ? propRes.resolved : undefined;
+
+			if (propRes.observers.length > 0) for (var key2 in propRes.observers) {
+				if (result.observers.indexOf(propRes.observers[key2]) < 0) result.observers.push(propRes.observers[key2]);
+			}if (temp.length > 0) result = _propertyResolver2.default.toProperty(name + '.' + sniffed.phantom.iterationKey + '.' + temp, object);
 		}
 
 		return result;
