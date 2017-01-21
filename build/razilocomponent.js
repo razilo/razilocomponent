@@ -1506,8 +1506,8 @@ var ForBinder = function (_Binder) {
 		if (_typeof(this.resolver.resolved) !== 'object') return;
 
 		// grab any config data
-		var phantomKey = this.config && this.config.resolved.key ? this.config.resolved.key : '';
-		var phantomValue = this.config && this.config.resolved.value ? this.config.resolved.value : '';
+		var phantomKey = this.config && this.config.resolved.key ? this.config.resolved.key.indexOf('$') !== 0 ? '$' + this.config.resolved.key : this.config.resolved.key : '$key';
+		var phantomValue = this.config && this.config.resolved.value ? this.config.resolved.value.indexOf('$') !== 0 ? '$' + this.config.resolved.value : this.config.resolved.value : '$value';
 		var order = this.order && this.order.resolved ? this.order.resolved : undefined;
 		var filter = this.filter && this.filter.resolved ? this.filter.resolved : undefined;
 
@@ -3056,11 +3056,16 @@ var Traverser = function () {
             }
         }
 
-        // go deep! <o_0>
-        if (element.childNodes) {
-            for (var _i = 0; _i < element.childNodes.length; _i++) {
-                if (element.childNodes[_i].nodeType !== 1) continue;
-                this.traverse(element.childNodes[_i], model);
+        this.goDeep(element, model);
+    };
+
+    Traverser.prototype.goDeep = function goDeep(element, model) {
+        // go deep! <o_0> Make sure we do not do this for loops (bind-for) as they will traverse
+        // themselves to stop stale binding bug on placeholder instead of parent looped results
+        if (element.childNodes && !element.hasAttribute('bind-for')) {
+            for (var i = 0; i < element.childNodes.length; i++) {
+                if (element.childNodes[i].nodeType !== 1) continue;
+                this.traverse(element.childNodes[i], model);
             }
         }
     };
@@ -3488,6 +3493,8 @@ var MethodResolver = function (_Resolver) {
 
 		// resolve each split data
 		for (var ii = 0; ii < values.length; ii++) {
+			values[ii] = values[ii].trim();
+
 			// resolve value
 			if (_booleanResolver2.default.regex().test(values[ii])) values[ii] = _booleanResolver2.default.toBoolean(values[ii]).resolved;else if (_stringResolver2.default.regex().test(values[ii])) values[ii] = _stringResolver2.default.toString(values[ii]).resolved;else if (_numberResolver2.default.regex().test(values[ii])) values[ii] = _numberResolver2.default.toNumber(values[ii]).resolved;else if (_propertyResolver2.default.regex().test(values[ii])) {
 				var propValRes = _propertyResolver2.default.toProperty(values[ii], object, node);
@@ -3705,15 +3712,17 @@ var ObjectResolver = function (_Resolver) {
 		var parts = data.substring(1, data.length - 1).split(',');
 		var values = [parts[0]];
 		for (var i = 1; i < parts.length; i++) {
+			var rb = (values[values.length - 1].match(/\(/g) || []).length == (values[values.length - 1].match(/\)/g) || []).length;
 			var sb = (values[values.length - 1].match(/\[/g) || []).length == (values[values.length - 1].match(/\]/g) || []).length;
 			var mb = (values[values.length - 1].match(/\{/g) || []).length == (values[values.length - 1].match(/\}/g) || []).length;
 
-			if (sb && mb) values[values.length] = parts[i];else values[values.length - 1] += ',' + parts[i];
+			if (rb && sb && mb) values[values.length] = parts[i];else values[values.length - 1] += ',' + parts[i];
 		}
 
 		// work through seperated data resolving or pushing for further analysis
 		var observers = [];
 		var result = [];
+
 		for (var ii = 0; ii < values.length; ii++) {
 			values[ii] = values[ii].trim();
 
@@ -3855,35 +3864,24 @@ var PhantomResolver = function (_Resolver) {
 
 	PhantomResolver.toProperty = function toProperty(data, object, node) {
 		data = data.trim();
+		var dataPhantom = data.split(/\.|\[/).shift();
+		var dataPath = data.substring(dataPhantom.length, data.length);
+
 		var result = { resolved: undefined, observers: [] };
 		if (!node || !node.parentNode) return result;
 
 		// find closest phantom up nodes
 		var sniffed = node;
-		while (sniffed && !sniffed.phantom && sniffed.tagName !== 'BODY') {
-			if (sniffed.phantom && (!sniffed.phantom.keyName || sniffed.phantom.keyName == data)) break;
-			if (sniffed.phantom && (!sniffed.phantom.valueName || sniffed.phantom.valueName == data)) break;
+		while (sniffed && sniffed.tagName !== 'BODY') {
+			if (sniffed && sniffed.phantom && (sniffed.phantom.keyName == dataPhantom || sniffed.phantom.valueName == dataPhantom)) break;
 			sniffed = sniffed.parentNode;
 		}
 		if (!sniffed || !sniffed.phantom) return result;
 
-		// resolve key and value names, else default (force $ in front)
-		var keyName = sniffed.phantom.keyName ? sniffed.phantom.keyName : '$key';
-		var valueName = sniffed.phantom.valueName ? sniffed.phantom.valueName : '$value';
-		if (keyName.indexOf('$') !== 0) keyName = '$' + keyName;
-		if (valueName.indexOf('$') !== 0) valueName = '$' + valueName;
-
-		// lets resolve phantom data name, check first part of data for phantom name
-		var pName = data;
-
 		// now we can analyse it and turn it into the actual object path if needed
-		if (pName == keyName) {
+		if (dataPhantom == sniffed.phantom.keyName) {
 			result.resolved = sniffed.phantom.iterationKey;
-		} else {
-			var temp = data.split(/\.|\[/);
-			temp.shift();
-			temp = temp.join('.');
-
+		} else if (dataPhantom == sniffed.phantom.valueName) {
 			var cache = -1;
 			var name = '';
 			for (var key in sniffed.phantom.observers) {
@@ -3899,7 +3897,7 @@ var PhantomResolver = function (_Resolver) {
 
 			if (propRes.observers.length > 0) for (var key2 in propRes.observers) {
 				if (result.observers.indexOf(propRes.observers[key2]) < 0) result.observers.push(propRes.observers[key2]);
-			}if (temp.length > 0) result = _propertyResolver2.default.toProperty(name + '.' + sniffed.phantom.iterationKey + '.' + temp, object);
+			}if (dataPath.length > 0) result = _propertyResolver2.default.toProperty(name + '.' + sniffed.phantom.iterationKey + dataPath, object);
 		}
 
 		return result;
