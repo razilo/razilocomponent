@@ -48,7 +48,7 @@ export default class Core {
 		// register custom element
 		var protoWrap = {prototype: proto};
 		if (!!ext) protoWrap.extends = ext;
-		document.registerElement(name, protoWrap);
+		try { document.registerElement(name, protoWrap); } catch(e) { }
 	}
 
 	static getThis()
