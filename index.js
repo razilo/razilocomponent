@@ -1,4 +1,5 @@
 import Core from './src/core.js'
+// import ObjectAssign from 'object-assign'
 
 export default class RaziloComponent {
 	constructor(name, extbp, bp) {
