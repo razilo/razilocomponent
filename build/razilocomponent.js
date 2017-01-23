@@ -4318,8 +4318,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-// import ObjectAssign from 'object-assign'
-
 var RaziloComponent = function () {
 	function RaziloComponent(name, extbp, bp) {
 		_classCallCheck(this, RaziloComponent);
@@ -4450,9 +4448,7 @@ var Core = function () {
 		if (!!ext) protoWrap.extends = ext;
 		try {
 			document.registerElement(name, protoWrap);
-		} catch (e) {
-			console.log('Notice: skipping "' + name + '", already registered as a custom component.');
-		}
+		} catch (e) {}
 	};
 
 	Core.getThis = function getThis() {
