@@ -2440,7 +2440,7 @@ var ValueBinder = function (_Binder) {
 		this.tag = this.node.tagName.toLowerCase();
 		this.type = this.node.getAttribute('type');
 		if (this.type != 'file') {
-			if (this.tag === 'select') setTimeout(this.setValue.bind(this), 1);else this.setValue();
+			if (this.tag === 'select') setTimeout(this.setValue.bind(this), 10);else this.setValue();
 		}
 
 		// should we watch for changes?
@@ -3848,7 +3848,7 @@ var PhantomResolver = function (_Resolver) {
 
 
 	PhantomResolver.regex = function regex() {
-		return (/^\${1}[a-zA-Z]{1}[a-zA-Z0-9_]+((\.[a-zA-Z]{1}[a-zA-Z0-9_]+)|(\[([0-9]+|[a-zA-Z_]{1}[a-zA-Z0-9_.\[\'\]]+)\])|(\[\'[^\[\]\']+\'\]))*$/
+		return (/^\${1}[a-zA-Z]{1}[a-zA-Z0-9_]+((\.[a-zA-Z]{1}[a-zA-Z0-9_]+)|(\[([0-9]+|\$?[a-zA-Z_]{1}[a-zA-Z0-9_.\[\'\]]+)\])|(\[\'[^\[\]\']+\'\]))*$/
 		);
 	};
 
@@ -3892,12 +3892,14 @@ var PhantomResolver = function (_Resolver) {
 			}
 			result.observers.push(name + '.' + sniffed.phantom.iterationKey);
 
-			var propRes = _propertyResolver2.default.toProperty(name + '.' + sniffed.phantom.iterationKey, object);
+			// get actual from initial phantom value
+			var propRes = _propertyResolver2.default.toProperty(name + '.' + sniffed.phantom.iterationKey, object, node);
 			result.resolved = typeof propRes.resolved !== 'undefined' ? propRes.resolved : undefined;
 
+			// now resolve property
 			if (propRes.observers.length > 0) for (var key2 in propRes.observers) {
 				if (result.observers.indexOf(propRes.observers[key2]) < 0) result.observers.push(propRes.observers[key2]);
-			}if (dataPath.length > 0) result = _propertyResolver2.default.toProperty(name + '.' + sniffed.phantom.iterationKey + dataPath, object);
+			}if (dataPath.length > 0) result = _propertyResolver2.default.toProperty(name + '.' + sniffed.phantom.iterationKey + dataPath, object, node);
 		}
 
 		return result;
@@ -3973,7 +3975,7 @@ var PropertyResolver = function (_Resolver) {
 
 
 	PropertyResolver.regex = function regex() {
-		return (/^[a-zA-Z]{1}[a-zA-Z0-9_]+((\.[a-zA-Z]{1}[a-zA-Z0-9_]+)|(\[([0-9]+|[a-zA-Z_]{1}[a-zA-Z0-9_.\[\'\]]+)\])|(\[\'[^\[\]\']+\'\]))*$/
+		return (/^[a-zA-Z]{1}[a-zA-Z0-9_]+((\.[a-zA-Z]{1}[a-zA-Z0-9_]+)|(\[([0-9]+|\$?[a-zA-Z_]{1}[a-zA-Z0-9_.\[\'\]]+)\])|(\[\'[^\[\]\']+\'\]))*$/
 		);
 	};
 
