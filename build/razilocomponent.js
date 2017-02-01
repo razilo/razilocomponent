@@ -1503,7 +1503,8 @@ var ForBinder = function (_Binder) {
 
 
 	ForBinder.prototype.bind = function bind(oldValue, path, action, objectKey) {
-		if (_typeof(this.resolver.resolved) !== 'object') return;
+		if (_typeof(this.resolver.resolved) !== 'object') return; // do not re-draw for non objects
+		if (action == 'update' && typeof oldValue !== 'undefined' && (typeof oldValue === 'undefined' ? 'undefined' : _typeof(oldValue)) !== 'object') return; // do not re-draw on litaral changes (as they do not affect loop)
 
 		// grab any config data
 		var phantomKey = this.config && this.config.resolved.key ? this.config.resolved.key.indexOf('$') !== 0 ? '$' + this.config.resolved.key : this.config.resolved.key : '$key';
