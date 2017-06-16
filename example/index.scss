@@ -1,0 +1,12 @@
+/**
+ * style.scss
+ * System wide generic styling, not specific to any component or the app
+ * such as font-styling, changes to default styling, loading of 3rd party libraries
+ */
+
+body {
+	margin: 0;
+	padding: 0;
+	font-family: 'Exo 2', sans-serif;
+	background-color: #f4f4f4;
+}

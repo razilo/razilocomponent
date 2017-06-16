@@ -1,0 +1,63 @@
+<!--
+* My Application
+* your-component-bootstrap-app - Simple single page app start point
+* @author Paul Smith (smiffy6969)
+* @site component.razilo.net
+* @licence MIT
+-->
+
+<!-- DEPENDANCIES -->
+<link rel="import" href="../../node_modules/razilocomponents/index.html" />
+
+<!-- STYLE - Encapsulate all css to tag name -->
+<style>
+	your-component-bootstrap-app { margin: 0; padding: 0; display: block; min-height: 100%; position: relative; }
+	your-component-bootstrap-app razilo-menu { background-color: #333; color: #eee; }
+</style>
+
+<!-- TEMPLATE -->
+<template id="your-component-bootstrap-app">
+	<razilo-menu home="one" side-logo="/assets/images/blade-white-50-circle.png" top-logo="/assets/images/blade-white-200-circle.png" side-logo-text="side hello" top-logo-text="top hello" bind-value="route">
+		<razilo-menu-quicklinks>
+			<razilo-menu-quicklink icon="google" title="refresh" route="aaa" bind-value="route"></razilo-menu-quicklink>
+			<razilo-menu-quicklink icon="question" title="help" route="ccc" bind-value="route"></razilo-menu-quicklink>
+			<razilo-menu-quicklink icon="user" title="user" route="ddd" bind-value="route"></razilo-menu-quicklink>
+			<razilo-menu-quicklink icon="sign-in" title="log in" route="account/login" bind-value="route"></razilo-menu-quicklink>
+			<razilo-menu-quicklink icon="sign-out" title="log out" route="eee" bind-value="route"></razilo-menu-quicklink>
+		</razilo-menu-quicklinks>
+		<razilo-menu-links>
+			<razilo-menu-link icon="industry" route="one" bind-value="route">One</razilo-menu-link>
+			<razilo-menu-link icon="car" route="two" bind-value="route">Two</razilo-menu-link>
+			<razilo-menu-link icon="motorcycle" route="three" bind-value="route">Three</razilo-menu-link>
+			<razilo-menu-link icon="question-circle" route="four" bind-value="route">Four</razilo-menu-link>
+			<razilo-menu-link icon="question-circle" route="404" bind-value="route">404</razilo-menu-link>
+		</razilo-menu-links>
+		<razilo-menu-footer>
+			<span class="copyright">&copy; Your Company</span>
+		</razilo-menu-footer>
+	</razilo-menu>
+	<razilo-router default-route="one" not-found-route="404" bind-value="route" push-state>
+		<razilo-router-route route="one" component="/src/app/one.component.html" component-name="app-one" cloak></razilo-router-route>
+		<razilo-router-route route="two" component="/src/app/two.component.html" component-name="app-two" cloak></razilo-router-route>
+		<razilo-router-route route="three" component="/src/app/three.component.html" component-name="app-three" cloak></razilo-router-route>
+		<razilo-router-route route="404" component-name="app-404" cloak></razilo-router-route>
+		<razilo-router-route route="aaa" url="https://www.google.co.uk" target="_blank"></razilo-router-route>
+		<razilo-router-route route="account/login" component="/src/app/account/login.component.html" component-name="app-account-login" cloak></razilo-router-route>
+	</razilo-router>
+	<razilo-store></razilo-store>
+</template>
+
+<!-- LOGIC -->
+<script>
+	new RaziloComponent('your-component-bootstrap-app', {
+		route: '',
+
+		attached: function() {
+			setTimeout(this.uncloak.bind(this), 250);
+		},
+
+		uncloak: function() {
+			this.getHost().setAttribute('cloak', false);
+		}
+	});
+</script>

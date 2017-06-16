@@ -1,0 +1,54 @@
+{
+  "name": "rapp",
+  "description": "Razilo application base to build web UI's based around teh raziloBind and raziloComponent libraries.",
+  "version": "0.0.1",
+  "licence": "private",
+  "private": true,
+  "author": {
+    "name": "Paul Smith",
+    "url": "http://pa.ulsmith.net"
+  },
+  "dependencies": {
+    "express": "^4.13.4",
+    "razilocomponent": "^1.2.0"
+  },
+  "devDependencies": {
+    "babel-core": "^6.7.7",
+    "babel-preset-es2015": "^6.6.0",
+    "babel-preset-es2015-loose": "^7.0.0",
+    "babelify": "^7.2.0",
+    "gulp": "^3.9.1",
+    "gulp-browserify": "^0.5.1",
+    "gulp-rename": "^1.2.2",
+    "gulp-sass": "^2.3.1",
+    "gulp-scss": "^1.3.17",
+    "gulp-sourcemaps": "^1.6.0",
+    "gulp-uglify": "^1.5.3",
+    "gulp-util": "^3.0.7",
+    "gulp-vulcanize": "^6.1.0",
+    "gulp-watch": "^4.3.5",
+    "jasmine-core": "^2.5.2",
+    "karma": "^1.3.0",
+    "karma-chrome-launcher": "^2.0.0",
+    "karma-coverage": "^1.1.1",
+    "karma-fixture": "^0.2.6",
+    "karma-html2js-preprocessor": "^1.1.0",
+    "karma-jasmine": "^1.0.2",
+    "karma-jasmine-html-reporter": "^0.2.2"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "browserify": {
+    "transform": [
+      [
+        "babelify",
+        {
+          "presets": [
+            "es2015-loose"
+          ]
+        }
+      ]
+    ]
+  }
+}

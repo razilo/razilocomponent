@@ -1,5 +1,5 @@
 {
-  "version": "1.0.9",
+  "version": "1.2.0",
   "name": "razilocomponent",
   "description": "ES6 web component building library for creating HTML web components in a clean modular way. The core part of the tool, allowing the creation of clean HTML web components.",
   "licence": "MIT",
@@ -7,8 +7,7 @@
   "homepage": "http://component.razilo.net",
   "dependencies": {
     "promise-polyfill": "^6.0.1",
-    "razilobind": "^1.1.4",
-    "razilocomponents": "^1.0.4",
+    "razilobind": "^1.2.0",
     "webcomponents.js": "^0.7.22"
   },
   "devDependencies": {
